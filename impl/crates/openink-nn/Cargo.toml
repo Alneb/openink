@@ -1,0 +1,9 @@
+[package]
+name = "openink-nn"
+description = "Tiny dependency-free inference for openink's trained models: the .oisw weight format, dense layers, GRUs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]

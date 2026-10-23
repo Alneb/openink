@@ -1,0 +1,14 @@
+# Open-source e-ink + stylus stack for the BOOX Note Air 5C. Design: docs/OPEN-STACK.md
+[workspace]
+resolver = "2"
+members = ["crates/openink-core", "crates/openink-pen", "crates/openink-ebc", "crates/openink-sf", "crates/openink-stroke", "crates/openink-epdc", "crates/openink-nn", "crates/openink-shape", "crates/openink-hwr", "crates/openink-jni"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.75"
+
+[workspace.dependencies]
+openink-core = { path = "crates/openink-core" }
+serde_json = "1"

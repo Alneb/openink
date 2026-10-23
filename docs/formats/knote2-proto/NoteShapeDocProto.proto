@@ -1,0 +1,37 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+// Note: name length prefix repaired (stored 20, actual 23)
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message ShapeInfoProtoList {
+  repeated ShapeInfoProto proto = 1;
+}
+
+message ShapeInfoProto {
+  string uniqueId = 1;
+  int64 createdAt = 2;
+  int64 updatedAt = 3;
+  int32 color = 4;
+  float thickness = 5;
+  int32 zorder = 6;
+  string boundingRect = 7;
+  string matrixValues = 8;
+  string textStyle = 9;
+  string text = 10;
+  string createArgs = 11;
+  int32 shapeType = 12;
+  string groupId = 13;
+  string resource = 14;
+  int32 shapeStatus = 15;
+  string revisionId = 16;
+  string lineStyle = 17;
+  string infoRevisionId = 18;
+  string tagIdList = 19;
+  string extra = 20;
+  string linkIdList = 21;
+  string richText = 22;
+  int32 fillColor = 23;
+  bytes pointList = 24;
+  string connectionBean = 25;
+  string optionsRepo = 26;
+}

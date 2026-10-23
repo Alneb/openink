@@ -1,0 +1,29 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message LinkProtoList {
+  repeated LinkProto proto = 1;
+}
+
+message LinkProto {
+  string uniqueId = 1;
+  string targetDocId = 2;
+  string documentId = 3;
+  string targetPageId = 4;
+  string pageUniqueId = 5;
+  string userId = 6;
+  int64 createdAt = 7;
+  int64 updatedAt = 8;
+  string content = 9;
+  string type = 10;
+  string remark = 11;
+  string title = 12;
+  int32 displayStyle = 13;
+  int32 targetPageIndex = 14;
+  string path = 15;
+  string extra = 16;
+  int32 status = 17;
+  string boundingRect = 18;
+  string revisionId = 19;
+}

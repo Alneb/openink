@@ -1,0 +1,44 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.hwr.proto";
+
+message HWRInputProto {
+  string lang = 1;
+  string contentType = 2;
+  string editorType = 3;
+  string recognizerType = 4;
+  float viewWidth = 5;
+  float viewHeight = 6;
+  float offsetX = 7;
+  float offsetY = 8;
+  bool gestureEnable = 9;
+  bool recognizeText = 10;
+  bool recognizeShape = 11;
+  bool isIncremental = 12;
+  repeated string itemIds = 13;
+  repeated string shapeIds = 14;
+  repeated HWRPointerProto pointerEvents = 15;
+  string downResources = 16;
+}
+
+message HWRPointerProto {
+  enum PointerEventType {
+    DOWN = 0;
+    MOVE = 1;
+    UP = 2;
+    CANCEL = 3;
+  }
+  enum PointerType {
+    PEN = 0;
+    TOUCH = 1;
+    ERASER = 2;
+    MOUSE = 3;
+  }
+  float x = 1;
+  float y = 2;
+  sint64 t = 3;
+  float f = 4;
+  sint32 pointerId = 5;
+  HWRPointerProto.PointerEventType eventType = 6;
+  HWRPointerProto.PointerType pointerType = 7;
+}

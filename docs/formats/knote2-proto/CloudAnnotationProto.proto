@@ -1,0 +1,28 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.data.model.proto";
+
+message CloudAnnotation {
+  string title = 1;
+  string guid = 2;
+  repeated CloudAnnotationBean context = 3;
+  string bookName = 4;
+  string docId = 5;
+  string author = 6;
+  string link = 7;
+  CloudNoteBook noteBook = 8;
+}
+
+message CloudAnnotationBean {
+  string uuid = 1;
+  string chapter = 2;
+  string time = 3;
+  string content = 4;
+  string note = 5;
+}
+
+message CloudNoteBook {
+  string guid = 1;
+  string title = 2;
+  CloudNoteBook parent = 3;
+}

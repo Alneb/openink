@@ -1,0 +1,24 @@
+[package]
+name = "openink-shape"
+description = "Open shape recogniser and beautifier (lines, polygons, conics, arrows, scratch-out): trained classifier + segmenter with geometric fitting (docs/SHAPE-ENGINE.md)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+# The training-data generator binary reads the user's decoded notes (JSON); the library itself has no deps.
+dataset = ["dep:serde_json"]
+
+[dependencies]
+openink-nn = { path = "../openink-nn" }
+serde_json = { workspace = true, optional = true }
+
+
+[[bin]]
+name = "shape-dataset"
+required-features = ["dataset"]
+
+[[bin]]
+name = "shape-crops"
+required-features = ["dataset"]

@@ -1,0 +1,17 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message NotePageModelList {
+  repeated NotePageModel proto = 1;
+}
+
+message NotePageModel {
+  string uniqueId = 1;
+  string layerList = 2;
+  int32 currentLayerId = 3;
+  string title = 4;
+  int64 createdAt = 5;
+  int64 updatedAt = 6;
+  string pageSize = 7;
+}

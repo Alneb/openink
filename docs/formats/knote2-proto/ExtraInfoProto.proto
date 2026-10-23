@@ -1,0 +1,10 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message ExtraInfo {
+  int32 docVersion = 1;
+  int32 appVersionCode = 2;
+  string userId = 3;
+  string documentId = 4;
+}

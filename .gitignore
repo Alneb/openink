@@ -1,0 +1,17 @@
+firmware/
+tools/
+*.img
+*.bin
+*.zip
+*.upx
+*.so
+.ghidra/
+.tools/
+mnt_temp/
+ghidra_project/
+__pycache__/
+/data/
+/.venv/
+# tool output (publish scans, test runs)
+/target/
+/impl/.toolchains

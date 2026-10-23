@@ -1,0 +1,36 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message VirtualPageList {
+  repeated VirtualPage proto = 1;
+}
+
+message VirtualPage {
+  string pageId = 1;
+  int64 createdAt = 2;
+  int64 updatedAt = 3;
+  float orderIndex = 4;
+  int32 status = 5;
+  string pageSize = 6;
+  string pageSizeWithMargin = 7;
+  string contentPageSize = 8;
+  string contentType = 9;
+  string contentRelativePath = 10;
+  string contentPageId = 11;
+  string contentId = 12;
+  int32 contentStatus = 13;
+}
+
+message VirtualDoc {
+  string uniqueId = 1;
+  int64 createdAt = 2;
+  int64 updatedAt = 3;
+  string viewportId = 4;
+  float actualScale = 5;
+  float offsetX = 6;
+  float offsetY = 7;
+  string coverPageId = 8;
+  string defaultTemplate = 9;
+  string docOptions = 10;
+}

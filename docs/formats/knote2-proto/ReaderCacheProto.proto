@@ -1,0 +1,36 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.reader.cbox.proto";
+
+message ChapterCacheListProto {
+  repeated RangeListProto cache = 1;
+}
+
+message RangeListProto {
+  int32 chapter = 1;
+  repeated RangeProto range = 2;
+}
+
+message RangeProto {
+  PositionProto position = 1;
+  repeated TableRowProto tableRow = 2;
+}
+
+message PositionProto {
+  repeated int32 xpath = 1;
+  int32 nodePosition = 2;
+  int32 textStartOffset = 3;
+  int32 textEndOffset = 4;
+}
+
+message TableRowProto {
+  PositionProto pin = 1;
+  repeated TableCellProto tableCell = 2;
+}
+
+message TableCellProto {
+  PositionProto pin = 1;
+  PositionProto start = 2;
+  PositionProto end = 3;
+  repeated TableRowProto tableRow = 4;
+}

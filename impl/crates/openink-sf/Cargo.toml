@@ -1,0 +1,13 @@
+[package]
+name = "openink-sf"
+description = "Typed encoding of Onyx's private SurfaceFlinger requests (instant ink, e-ink refresh), checked against the spec"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+openink-core.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

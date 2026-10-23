@@ -1,0 +1,10 @@
+[package]
+name = "openink-stroke"
+description = "Pressure/tilt/velocity-shaped stroke geometry for the knote2 pen set (replaces libneo_pen.so)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dev-dependencies]
+openink-pen = { path = "../openink-pen" }

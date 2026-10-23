@@ -1,0 +1,22 @@
+[package]
+name = "openink-jni"
+description = "JNI bindings: org.openink.pen.PenReader (stylus reader), org.openink.stroke.StrokeEngine, org.openink.epd.EpdEngine and org.openink.shape.ShapeRecognizer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+openink-pen = { path = "../openink-pen" }
+openink-stroke = { path = "../openink-stroke" }
+openink-epdc = { path = "../openink-epdc" }
+openink-shape = { path = "../openink-shape" }
+openink-hwr = { path = "../openink-hwr" }
+openink-core.workspace = true
+jni = "0.21"
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+libc = "0.2"

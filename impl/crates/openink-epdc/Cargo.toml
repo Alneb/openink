@@ -1,0 +1,10 @@
+[package]
+name = "openink-epdc"
+description = "The e-ink refresh engine: request queue, merging, waveform choice, ghosting ledger, pen-aware scheduling (pure, host-tested)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+openink-core.workspace = true

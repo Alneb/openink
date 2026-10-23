@@ -1,0 +1,55 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message NoteInfoList {
+  repeated NoteInfo proto = 1;
+}
+
+message NoteInfo {
+  string uniqueId = 1;
+  int64 createdAt = 2;
+  int64 updatedAt = 3;
+  string parentUniqueId = 4;
+  string subPageName = 5;
+  string title = 6;
+  string extraAttributes = 7;
+  int32 type = 8;
+  float strokeWidth = 9;
+  float eraserWidth = 10;
+  string notePenInfo = 11;
+  string notePageInfo = 12;
+  string noteBackground = 13;
+  string deviceInfo = 14;
+  int32 strokeColor = 15;
+  int32 currentShapeType = 16;
+  int32 background = 17;
+  int32 lineLayoutBackground = 18;
+  int32 position = 19;
+  string pageNameList = 20;
+  string richTextPageNameList = 21;
+  float pageOriginWidth = 22;
+  float pageOriginHeight = 23;
+  string source = 24;
+  string associateDate = 25;
+  int32 asyncStatus = 26;
+  int32 encryptionType = 27;
+  string digest = 28;
+  string associationId = 29;
+  int32 associationType = 30;
+  int32 status = 31;
+  int64 cloudNoteSize = 32;
+  int64 cloudUpdatedAt = 33;
+  string commitId = 34;
+  int64 embeddedAt = 35;
+  int32 syncFrom = 36;
+  int32 noteSyncStatus = 37;
+  int32 favorite = 38;
+  string userId = 39;
+  int32 version = 40;
+  string groupId = 41;
+  string thumbnailRes = 42;
+  int32 activeScene = 43;
+  string removePageList = 44;
+  string miniRequiredVersion = 45;
+}

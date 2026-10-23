@@ -1,0 +1,10 @@
+[package]
+name = "openink-pen"
+description = "Stylus input for the BOOX Note Air 5C: evdev decoding, pen state machine, regions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+libc = "0.2"

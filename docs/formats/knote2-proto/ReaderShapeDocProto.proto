@@ -1,0 +1,47 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+// Note: name length prefix repaired (stored 22, actual 25)
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message ShapeInfoProtoList {
+  repeated ShapeInfoProto proto = 1;
+}
+
+message ShapeInfoProto {
+  string uniqueId = 1;
+  string objectId = 2;
+  int64 createdAt = 3;
+  int64 updatedAt = 4;
+  string subPageUniqueId = 5;
+  string appId = 6;
+  int32 pageOriginWidth = 7;
+  int32 pageOriginHeight = 8;
+  int32 color = 9;
+  int32 paintStyle = 10;
+  string createArgs = 11;
+  float thickness = 12;
+  int32 zorder = 13;
+  string boundingRect = 14;
+  int32 shapeType = 15;
+  string extraAttributes = 16;
+  int32 bookPosition = 17;
+  string anchor = 18;
+  int32 scribbleType = 19;
+  string matrixValues = 20;
+  string textStyle = 21;
+  string text = 22;
+  string position = 23;
+  string lineStyle = 24;
+  string revisionId = 25;
+  string resource = 26;
+  int32 status = 27;
+  string infoRevisionId = 28;
+  int32 fillColor = 29;
+  string richText = 30;
+  string pagePositionV2 = 31;
+  string pageUniqueIdV2 = 32;
+  string pagePositionV3 = 33;
+  string pageUniqueIdV3 = 34;
+  int32 positionVersion = 35;
+  bytes pointList = 36;
+}

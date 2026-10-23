@@ -1,0 +1,11 @@
+// Recovered from the embedded FileDescriptorProto by docs/scripts/extract_protos.py
+syntax = "proto3";
+option java_package = "com.onyx.android.sdk.scribble.data.proto";
+
+message SyncNoteData {
+  string syncDataDir = 1;
+  int32 noteTreeCount = 2;
+  int32 tagTreeCount = 3;
+  repeated string noteTreePBPaths = 4;
+  repeated string noteTagPBPaths = 5;
+}

@@ -1,0 +1,13 @@
+[package]
+name = "openink-hwr"
+description = "Open online handwriting recogniser: per-point pen features, a bidirectional GRU stack and CTC decoding (docs/HWR-ENGINE.md)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+openink-nn = { path = "../openink-nn" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

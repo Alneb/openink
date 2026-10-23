@@ -1,0 +1,10 @@
+[package]
+name = "openink-core"
+description = "Typed model of the BOOX e-ink/pen protocol: update modes, pen states, SurfaceFlinger codes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
