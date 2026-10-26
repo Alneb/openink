@@ -74,6 +74,8 @@ struct Node {
     size: f32,
     /// Dab opacity 0..1 (textured pens only).
     alpha: f32,
+    /// The pen's azimuth (rad), unwrapped along the stroke: libneo's channel 4 (fountain only, see [`azimuth`]).
+    azimuth: f32,
     /// The filtered sample it came from and its travel: nodes inside a segment are computed from the spline of
     /// the samples, as libneo splines every channel before its width calculators run.
     src: Sample,
@@ -118,6 +120,8 @@ struct SplineStroke {
     attr: Smoother,
     /// The last raw sample (the calculators' speed is raw travel).
     raw_last: Sample,
+    /// The last raw sample's unwrapped azimuth (the fountain calculator unwraps against it).
+    az_last: f32,
     /// The last three nodes (Catmull-Rom needs the one before the segment's start).
     prev2: Option<Node>,
     /// The newest node: its segment is drawn once the next one arrives (libneo's spline looks one point ahead).
@@ -214,13 +218,14 @@ impl Stroke {
         let first = smoother.push(s).unwrap_or(s);
         let raw = node_for(self.kind, &self.cfg, s, 0.0);
         let a0 = attr.push(attr_sample(raw)).unwrap_or(attr_sample(raw));
-        let node = Node { x: first.x, y: first.y, size: a0.x, alpha: a0.y, src: first, step: 0.0 };
+        let node = Node { x: first.x, y: first.y, size: a0.x, alpha: a0.y, azimuth: a0.pressure, src: first, step: 0.0 };
         let mut a = SplineStroke {
             kind: self.kind,
             cfg: self.cfg,
             smoother,
             attr,
             raw_last: s,
+            az_last: raw.azimuth,
             prev2: None,
             pending: None,
             prev: node,
@@ -310,11 +315,13 @@ impl SplineStroke {
         ink
     }
 
-    /// The calculator's output for a raw sample, with its raw travel as the speed.
+    /// The calculator's output for a raw sample, with its raw travel as the speed and its azimuth unwrapped.
     fn raw_node(&mut self, s: Sample) -> Node {
         let step = (s.x - self.raw_last.x).hypot(s.y - self.raw_last.y);
         self.raw_last = s;
-        node_for(self.kind, &self.cfg, s, step)
+        let n = node_for(self.kind, &self.cfg, s, step);
+        self.az_last = unwrap_angle(n.azimuth, self.az_last);
+        Node { azimuth: self.az_last, ..n }
     }
 
     /// Pen-up (or a forced release): the filter runs out to the up point, the last segment closes on it, and
@@ -338,7 +345,7 @@ impl SplineStroke {
     fn advance(&mut self, ink: &mut Ink, p: Sample, a: Sample) {
         let last = self.pending.unwrap_or(self.prev);
         self.step = (p.x - last.x).hypot(p.y - last.y);
-        let node = Node { x: p.x, y: p.y, size: a.x, alpha: a.y, src: p, step: self.step };
+        let node = Node { x: p.x, y: p.y, size: a.x, alpha: a.y, azimuth: a.pressure, src: p, step: self.step };
         if let Some(to) = self.pending.replace(node) {
             self.segment(ink, to, node);
         }
@@ -364,6 +371,9 @@ impl SplineStroke {
         let width = |t: f32| cr1(sizes, t);
         let mut ts = Vec::new();
         subdivide(&at, &width, 0.0, 1.0, &mut ts, 0);
+        if self.kind == PenKind::Fountain {
+            azimuth_quarters([before, a, to, after].map(|n| n.azimuth), &mut ts);
+        }
         let mut last = a;
         for &t in ts.iter().chain(std::iter::once(&1.0)) {
             let cur = if t >= 1.0 {
@@ -446,9 +456,49 @@ impl SplineStroke {
     }
 }
 
-/// A node's (size, alpha) as a Sample for the attribute filter.
+/// A node's (size, alpha, azimuth) as a Sample for the attribute filter.
 fn attr_sample(n: Node) -> Sample {
-    Sample { x: n.size, y: n.alpha, pressure: 0.0, tilt_x: 0.0, tilt_y: 0.0, t_ms: n.src.t_ms }
+    Sample { x: n.size, y: n.alpha, pressure: n.azimuth, tilt_x: 0.0, tilt_y: 0.0, t_ms: n.src.t_ms }
+}
+
+/// libneo's azimuth from Android tilt (`FUN_00470184`, tilts truncated to whole degrees):
+/// atan2(−sin tiltX, sin tiltY) + π/2, wrapped to (−π, π]. No tilt gives a constant π/2.
+fn azimuth(s: Sample) -> f32 {
+    let (tx, ty) = (s.tilt_x as i32 as f32 * DEG, s.tilt_y as i32 as f32 * DEG);
+    let a = (-tx.sin()).atan2(ty.sin()) + std::f32::consts::FRAC_PI_2;
+    if a > std::f32::consts::PI { a - std::f32::consts::TAU } else { a }
+}
+
+/// The fountain calculator's unwrapping (`FUN_004529ac`): shift by the previous value's whole turns, then by one
+/// turn more when the step would exceed half a turn.
+fn unwrap_angle(a: f32, prev: f32) -> f32 {
+    use std::f32::consts::{PI, TAU};
+    let a = a + (prev / TAU) as i32 as f32 * TAU;
+    if a - prev >= PI {
+        a - TAU
+    } else if a - prev < -PI {
+        a + TAU
+    } else {
+        a
+    }
+}
+
+/// libneo's channel-4 rule (`FUN_004498a4`): at t = 0, ¼, ½, ¾ of a segment, a node is added wherever the splined
+/// azimuth has moved more than `AZIMUTH_TOL` rad from the last added one (the start counts as added).
+const AZIMUTH_TOL: f32 = 0.06;
+
+fn azimuth_quarters(az: [f32; 4], ts: &mut Vec<f32>) {
+    let mut last = cr1(az, 0.0);
+    for i in 0..4 {
+        let t = i as f32 * 0.25;
+        let v = cr1(az, t);
+        if (v - last).abs() > AZIMUTH_TOL {
+            ts.push(t);
+            last = v;
+        }
+    }
+    ts.sort_by(f32::total_cmp);
+    ts.dedup();
 }
 
 /// Width/opacity model, ported from libneo_pen.so's point calculators (docs/STROKE.md,
@@ -473,7 +523,7 @@ fn node_for(kind: PenKind, cfg: &PenConfig, s: Sample, step: f32) -> Node {
         PenKind::Charcoal => ((w * 1.2 + 5.0) * charcoal_tilt(cfg, s), p),
     };
     let floor = if kind.output() == Output::Dabs { 2.0 * MIN_HALF_PX } else { MIN_HALF_PX };
-    Node { x: s.x, y: s.y, size: size.max(floor), alpha, src: s, step }
+    Node { x: s.x, y: s.y, size: size.max(floor), alpha, azimuth: azimuth(s), src: s, step }
 }
 
 /// libneo's FountainPenWidthCalculator (diameter, px) with velocityAmplifier and the velocity
@@ -658,6 +708,44 @@ mod tests {
             let ink = Stroke::new(kind, cfg(kind)).render(&pts);
             assert!(!ink.is_empty() && ink.data.iter().all(|v| v.is_finite()), "{kind:?}");
         }
+    }
+
+    #[test]
+    fn azimuth_follows_libneo() {
+        use std::f32::consts::{FRAC_PI_2, PI, TAU};
+        let at = |tx: f32, ty: f32| azimuth(Sample { x: 0.0, y: 0.0, pressure: 0.5, tilt_x: tx, tilt_y: ty, t_ms: 0.0 });
+        assert!((at(0.0, 0.0) - FRAC_PI_2).abs() < 1e-6, "no tilt: a constant π/2");
+        assert!(at(40.0, 0.0).abs() < 1e-6);
+        assert!((at(40.7, 0.0) - at(40.0, 0.0)).abs() < 1e-6, "tilts are whole degrees");
+        assert!(at(-30.0, -1.0) > -PI && at(-30.0, -1.0) <= PI);
+        // Unwrapping keeps the channel continuous across ±π.
+        assert!((unwrap_angle(-3.1, 3.1) - (TAU - 3.1)).abs() < 1e-5);
+        assert!((unwrap_angle(0.2, TAU + 0.1) - (TAU + 0.2)).abs() < 1e-5);
+    }
+
+    /// The oracle on a straight line with tiltX alternating 0/40 in runs of three put extra nodes at t = ¼, ½, ¾;
+    /// a constant tilt adds none.
+    #[test]
+    fn azimuth_changes_add_quarter_nodes() {
+        let mut ts = Vec::new();
+        azimuth_quarters([1.0; 4], &mut ts);
+        assert!(ts.is_empty());
+        let (h, z) = (std::f32::consts::FRAC_PI_2, 0.0);
+        azimuth_quarters([h, h, z, z], &mut ts);
+        assert_eq!(ts, [0.25, 0.5, 0.75]);
+        let mut ts = vec![0.5];
+        azimuth_quarters([h, h, z, z], &mut ts);
+        assert_eq!(ts, [0.25, 0.5, 0.75], "sorted, no duplicates");
+
+        let pieces = |tilt: fn(usize) -> f32| {
+            let pts: Vec<Sample> = (0..30)
+                .map(|i| Sample { x: 100.0 + 6.0 * i as f32, y: 200.0, pressure: 0.5, tilt_x: tilt(i), tilt_y: 0.0, t_ms: 6.0 * i as f32 })
+                .collect();
+            let cfg = PenConfig { smooth_level: 0.0, ..cfg(PenKind::Fountain) };
+            Stroke::new(PenKind::Fountain, cfg).render(&pts).data.len()
+        };
+        assert_eq!(pieces(|_| 0.0), pieces(|_| 40.0), "a constant tilt changes nothing");
+        assert!(pieces(|i| if i / 3 % 2 == 1 { 40.0 } else { 0.0 }) > pieces(|_| 0.0));
     }
 
     #[test]

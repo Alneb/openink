@@ -200,8 +200,9 @@ projection, vs tol²) or more than 10·tol from the chord midpoint in x or y; to
 oracle's pieces per segment on 16 arcs (2°–45° per sample, radius 30 and 120) and the exact t values
 (0.125, 0.25, 0.5, 0.75, 0.875 on a 45° arc). Every channel is splined (pressure too), and inserted nodes get the
 segment's speed (libneo's radii stay constant along a steady arc). openink-stroke now draws one piece per
-interval instead of fixed 1.5 px pieces. Still open: the pressure-channel bisection (`FUN_0044abd4`), the extra
-quarter points of channel 4 (`FUN_004498a4`, threshold 0.06) and the accumulated-turn test (`FUN_0044973c`).
+interval instead of fixed 1.5 px pieces. Resolved below: the "pressure"-channel bisection
+(`FUN_0044abd4`: it is the width), the quarter points of channel 4 (`FUN_004498a4`, threshold 0.06: the azimuth,
+ported) and the accumulated-turn test (`FUN_0044973c`: off by default).
 
 **Stage 4, the other channels (in progress).** `FUN_0044abd4` splits an interval when a channel's spline midpoint
 differs from the average of its ends by more than tol (0.15); `FUN_004421b0` looks a channel id up in the point's
@@ -215,9 +216,7 @@ channel list (x = 0, y = 1; ids 3 and 4 are the two extra channels, not yet mapp
 Resolved for the width: the calculators run before the spline, so channel 3 is the **width** (a diameter for
 outline pens): the per-move piece counts 1, 2, 2 per 3-sample run match a width-midpoint test at 0.15, and the
 inserted node's radius (4.61) is the spline of the knot widths (4.60), not the width of the splined pressure.
-Ported: inserted nodes take the width spline, and the bisection also splits on it. Channel 4 (the nib angle, only
-with tilt) is not ported yet. The accumulated-turn test (`FUN_0044973c`) is inactive by default: its threshold
-(interpolator +0x2c) starts at −1 and the test only runs when it is ≥ 0, so nothing to port for the stock pens.
+Ported: inserted nodes take the width spline, and the bisection also splits on it. Channel 4 is the pen's **azimuth**, ported 2026-10-26 (fountain only): libneo's JNI turns the Android tilt into altitude and azimuth (`FUN_00470184`: tilts truncated to whole degrees, azimuth = atan2(−sin tiltX, sin tiltY) + π/2 wrapped to (−π, π]; no tilt gives a constant π/2); the fountain's `SquareCalculator` (`FUN_004529ac`) unwraps it against the previous point (add the previous value's whole turns, then ±2π when the step exceeds π) and emits it as its 4th channel whatever `tiltEnabled` says; the FIR filters it like the width. Per segment (`FUN_004498a4`, called from `FUN_00448bf0`): at t = 0, ¼, ½, ¾ a node is added where the splined azimuth has moved more than 0.06 rad from the last added one (the start counts). Host tests reproduce the oracle's tiltX 0/40 run (nodes at ¼, ½, ¾); an oracle check on a real tilted stroke is still to do. The accumulated-turn test (`FUN_0044973c`) is inactive by default: its threshold (interpolator +0x2c) starts at −1 and the test only runs when it is ≥ 0, so nothing to port for the stock pens.
 
 **End-to-end check on the author's real strokes** (`examples/stroke-dump.rs` vs the oracle, fountain, width 10,
 smoothLevel 0.6, dpi 320; rasterised at 4×, `xor / union`): 3.3–3.8 % with true circular caps → **0.8–1.4 %**
@@ -333,7 +332,9 @@ bounds (NaN = empty) then data. Pen codes 0–6 in `PenKind` order (Rust `PenKin
   knote2 slider range.
 
 ## Open
-- Prediction ink (libneo returns a predicted tail; we do not predict yet).
+- Prediction ink: **not needed**. libneo can draw a predicted tail from a point the caller passes, but knote2 passes
+  `null` at every call site (`TouchData.predictPoint` is never set), so stock knote2 draws none (checked 2026-10-26).
+- Fountain V1 (type 2) and charcoal V1 (type 4): knote2 still renders strokes stored with those types (older notes).
 - Eraser.
 - On-device side-by-side tuning against knote2.
 - Rendering knote2 notes from storage ([KNOTE2.md](KNOTE2.md)) with these pens.
