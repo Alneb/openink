@@ -25,11 +25,11 @@ with more pieces weighs more.
 
 | measure | value |
 |---|---|
-| Open stack, app-process half (L1 + L2: runs on a locked device) | **33 / 42 deliverables = 79 %** |
+| Open stack, app-process half (L1 + L2: runs on a locked device) | **35 / 42 deliverables = 83 %** |
 | Open stack, system half (L3 compositor + L4 kernel driver) | **3 / 10 = 30 %** (specs and ABI only; no code that runs on the device) |
 | knote2 feature parity (what a user of the stock notes app sees) | **9.5 / 11 = 86 %** built, **3 / 11** seen on the device |
 | Rust code | 10 crates, 11 113 lines, 117 tests (`impl/check.sh`: all 5 stages pass) |
-| Java code | 56 files, 5 166 lines (`org.openink` API, `onyx-compat`, demo app, oracle) |
+| Java code | 58 files, 5 345 lines (`org.openink` API, `onyx-compat`, demo app, oracle) |
 | Onyx SDK API reimplemented (`onyx-compat`) | **204 / 211** public names (96.7 %); the 7 left are Onyx-internal |
 | Stroke pens matching libneo (outline area `xor / union`, 4× raster) | **7 / 7** pens ported; ballpoint 0.02–0.17 %, square 0.03–0.25 %, brush 0.6–1.4 %, fountain 0.8–1.4 %, marker 1.2–2.5 % |
 | Dab pens matching libneo | pencil dabs identical on 3 / 3 recorded strokes (373 / 373 dabs); charcoal V2 tiles 163 / 176 identical |
@@ -40,7 +40,7 @@ with more pieces weighs more.
 
 ## 1. Open stack, layer by layer
 
-### L1 — Java API (`org.openink`, `onyx-compat`): 5.5 / 9
+### L1 — Java API (`org.openink`, `onyx-compat`): 7.5 / 9
 
 | deliverable | state | evidence |
 |---|---|---|
@@ -48,8 +48,8 @@ with more pieces weighs more.
 | `onyx-compat`: Onyx `TouchHelper` / `RawInputReader` / `EpdController` / `EpdPenManager` / `TouchPointList` / `RawInputCallback` | done: 204 / 211 names | built ([API-COVERAGE.md](API-COVERAGE.md)) |
 | `onyx-compat`: the 7 names left (`getEventBusHolder`, `register`, `unregister`, `nativeRawReader`, `onNext`, `run`) | n/a: Onyx-internal event-bus plumbing, not app API | static |
 | `onyx-compat` run on the device with a real Onyx-SDK app | missing | none |
-| 3 `create(...)` overloads | missing | static |
-| meaning of `onBeginRawDrawing`'s leading boolean | missing | static |
+| 3 `create(...)` overloads (render set: bit 2 the evdev reader, bits 1 / 4 the view's MotionEvents) | done | built (2026-10-26) |
+| the callbacks' leading booleans: `shortcutDrawing` (always false), `shortcutErasing` (side-button eraser), `outLimitRegion` (the pen left the region; the native reader then ends the stroke and starts a new one on re-entry, now mirrored, host check `RegionGateCheck`) | done | static + built (2026-10-26) |
 | JNI layer (`openink-jni`: stroke, shape, HWR, pen) | done | built + device |
 | Java host checks + Android cross-build in the gate | done | built |
 | demo app (pens, width, eraser, undo, persistence) | half: runs on the device; eraser / undo / persistence not tried there | device (partly) |
@@ -187,6 +187,9 @@ Claims that stay static-only and are marked so in their docs: the whole compat l
 - Pen parity: [STROKE.md](STROKE.md) tables (recorded strokes, W 10, rasterised at 4×, `xor / union`).
 - API names: [API-COVERAGE.md](API-COVERAGE.md). Shape: [SHAPE-ENGINE.md](SHAPE-ENGINE.md) (shape-eval). HWR:
   [HWR-ENGINE.md](HWR-ENGINE.md).
+- Callback flags and `create` overloads: libonyx_pen_touch_reader `PenManager::report` / `quadOutRegion` /
+  `isShortcutErasing`, `BaseReader::onEvent`, `TouchConsumer::onTouchEvent`; the SDK's `TouchHelper`, `RawInputReader`,
+  `touch/*Render`; the framework's own copy of the reader names the flags. See [API-COVERAGE.md](API-COVERAGE.md).
 - Prediction and V1 pens: knote2's `NeoPenRender`, `NeoNativePen`, `NoteTouchPointKt`, `TouchData`, `NeoPenUtils`,
   `CharcoalPathRender`. Channel 4: libneo `FUN_00448bf0` → `FUN_004498a4`, `FUN_004529ac`, `FUN_00470184`, and the
   JNI entry `nativeOnPenMove`.

@@ -21,7 +21,7 @@ outside, and rebuilds them as open code an app can use on a stock, locked device
 - **`docs/`**: the findings, from the e-ink hardware and the kernel driver to Boox Notes' file format and its network
   traffic. Start at [docs/INDEX.md](docs/INDEX.md).
 - **How far it is**: [docs/PROGRESS.md](docs/PROGRESS.md) counts what is done and what is missing, layer by layer
-  (2026-10-26: the app-process half about 79 %, the system half about 30 %).
+  (2026-10-26: the app-process half about 83 %, the system half about 30 %).
 
 Atlas ([github.com/Alneb/atlas](https://github.com/Alneb/atlas)) uses openink's stroke and shape crates for its pen
 canvas on Boox tablets.

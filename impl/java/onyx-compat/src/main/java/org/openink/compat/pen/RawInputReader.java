@@ -23,9 +23,10 @@ import org.openink.pen.ScreenMap;
 /**
  * Onyx's {@code com.onyx.android.sdk.pen.RawInputReader} over openink: the stylus from our evdev
  * reader (no libonyx_pen_touch_reader.so), mapped to host-view pixels, assembled into strokes and
- * delivered to a {@link RawInputCallback}. Point filtering follows SurfaceFlinger's
- * {@code PenManager::inValidRegion}: every point must lie in a limit rect (in single-region mode,
- * in the one the stroke started in) and outside every exclude rect.
+ * delivered to a {@link RawInputCallback}. Point filtering follows the native reader's
+ * {@code PenManager::inValidRegion}: every point, padded by half the stroke width, must lie in a
+ * limit rect (in single-region mode, the first one the contact hit) and clear every exclude rect.
+ * Leaving the region ends the stroke and re-entering starts a new one ({@link RegionGate}).
  *
  * <p>Pen-down/up also go to the open refresh engine ({@link EpdController#engine()}), which holds
  * explicit refreshes while the pen writes.
@@ -64,7 +65,8 @@ public class RawInputReader implements PenReader.Listener {
     // The stroke in progress (pen thread, or the caller of onTouchPointReceived).
     private TouchPointList stroke;
     private volatile boolean erasing;
-    private int strokeRegion = -1;
+    private final RegionGate gate = new RegionGate();
+    private int contactRegion = -1; // single-region mode: the limit rect this contact first hit
     private TouchPoint last;
     private final RectF dirty = new RectF(); // handed to the main thread for the pen-up refresh
 
@@ -120,6 +122,7 @@ public class RawInputReader implements PenReader.Listener {
             reader = null;
         }
         stroke = null;
+        gate.up();
         main.removeCallbacks(penUpRefresh);
         synchronized (dirty) {
             dirty.setEmpty();
@@ -281,38 +284,58 @@ public class RawInputReader implements PenReader.Listener {
         ScreenMap m = c.map();
         TouchPoint p = new TouchPoint(m.screenX(x, y) - viewLeft, m.screenY(x, y) - viewTop,
                 pressure * a.pressureMax, 0, tiltX, tiltY, timeUs / 1000);
-        handle(action, p, tool == PenReader.TOOL_ERASER || (side && sideButtonErases));
+        boolean rubber = tool == PenReader.TOOL_ERASER, sideErase = !rubber && side && sideButtonErases;
+        handle(action, p, rubber || sideErase, sideErase);
     }
 
     /**
+     * App-side input (TouchHelper without render bit 2): a stylus MotionEvent point, already in
+     * host-view pixels, pressure 0..1 as the SDK's AppTouchInputReader keeps it.
+     */
+    void motionPoint(int action, float x, float y, float pressure, long timeMs, boolean erase) {
+        handle(action, new TouchPoint(x, y, pressure, 0, timeMs), erase, false);
+    }
+
+    /** Native code 3: the caller already decided the point left the region. */
+    private static final int OUT_OF_REGION = -1;
+
+    /**
      * The SDK's native entry, kept public: a point already in host-view pixels. {@code action} uses
-     * the native codes: 0 down, 1 move, 2 up, 3 up (eraser), 5 hover, 6 forced release.
+     * the native codes: 0 down, 1 move, 2 up, 3 left the limit region (the stroke ends), 5 hover,
+     * 6 forced release. The native reader always passes {@code shortcutDrawing = false}.
      */
     public void onTouchPointReceived(float x, float y, int pressure, int tiltX, int tiltY, boolean erase,
-                                     boolean unused1, boolean unused2, int action, long timestamp) {
+                                     boolean shortcutDrawing, boolean shortcutErasing, int action, long timestamp) {
         TouchPoint p = new TouchPoint(x, y, pressure, 0, tiltX, tiltY, timestamp);
         int a;
         switch (action) {
             case 0: a = PenReader.DOWN; break;
             case 1: a = PenReader.MOVE; break;
-            case 2: case 3: a = PenReader.UP; break;
+            case 2: a = PenReader.UP; break;
+            case 3: a = OUT_OF_REGION; break;
             case 5: a = PenReader.HOVER_ENTER; break;
             case 6: a = PenReader.FORCED_UP; break;
             default: return;
         }
-        handle(a, p, erase);
+        handle(a, p, erase, shortcutErasing);
     }
 
-    private void handle(int action, TouchPoint p, boolean erase) {
+    /** {@code sideErase}: the side button turned the pen into an eraser (the SDK's shortcutErasing). */
+    private void handle(int action, TouchPoint p, boolean erase, boolean sideErase) {
         RawInputCallback cb = callback;
         if (cb == null) return;
         try {
             switch (action) {
                 case PenReader.HOVER_ENTER: cb.onPenActive(p); break;
-                case PenReader.DOWN: begin(cb, p, erase); break;
-                case PenReader.MOVE: move(cb, p); break;
+                case PenReader.DOWN:
+                    gate.up(); // a new contact: no stroke carries over
+                    contactRegion = -1;
+                    step(cb, gate.point(valid(p)), p, erase, sideErase);
+                    break;
+                case PenReader.MOVE: step(cb, gate.point(valid(p)), p, erase, sideErase); break;
+                case OUT_OF_REGION: step(cb, gate.point(false), p, erase, sideErase); break;
                 case PenReader.UP:
-                case PenReader.FORCED_UP: end(cb, p); break;
+                case PenReader.FORCED_UP: if (gate.up()) end(cb, p, false); break;
                 default: break;
             }
         } catch (RuntimeException e) {
@@ -321,40 +344,48 @@ public class RawInputReader implements PenReader.Listener {
         }
     }
 
-    private void begin(RawInputCallback cb, TouchPoint p, boolean erase) {
+    private void step(RawInputCallback cb, RegionGate.Step s, TouchPoint p, boolean erase, boolean sideErase) {
+        switch (s) {
+            case BEGIN: begin(cb, p, erase, sideErase); break;
+            case MOVE: move(cb, p); break;
+            case END_OUT: end(cb, p, true); break;
+            case SKIP: break;
+        }
+    }
+
+    private void begin(RawInputCallback cb, TouchPoint p, boolean erase, boolean sideErase) {
         if (!drawing) return;
-        int region = limitIndex(p);
-        if (region == -2 || excluded(p)) return;
         main.removeCallbacks(penUpRefresh);
         stroke = new TouchPointList();
         stroke.add(p);
-        strokeRegion = region;
         last = p;
         erasing = erase;
         main.post(() -> engine(true));
-        if (erase) cb.onBeginRawErasing(false, p); else cb.onBeginRawDrawing(false, p);
+        // The native reader never sets shortcutDrawing; shortcutErasing marks a side-button eraser.
+        if (erase) cb.onBeginRawErasing(sideErase, p); else cb.onBeginRawDrawing(false, p);
     }
 
     private void move(RawInputCallback cb, TouchPoint p) {
-        if (stroke == null || !valid(p)) return;
+        if (stroke == null) return;
         if (filterRepeatMovePoint && last != null && last.x == p.x && last.y == p.y) return;
         last = p;
         stroke.add(p);
         if (erasing) cb.onRawErasingTouchPointMoveReceived(p); else cb.onRawDrawingTouchPointMoveReceived(p);
     }
 
-    private void end(RawInputCallback cb, TouchPoint p) {
+    /** {@code outOfRegion}: the pen left the limit region (the SDK's outLimitRegion flag). */
+    private void end(RawInputCallback cb, TouchPoint p, boolean outOfRegion) {
         if (stroke == null) return;
         TouchPointList done = stroke;
         stroke = null;
-        done.add(p);
+        if (!outOfRegion) done.add(p); // the point outside is reported only as the end point
         boolean wasErasing = erasing;
         erasing = false;
         if (wasErasing) {
-            cb.onEndRawErasing(false, p);
+            cb.onEndRawErasing(outOfRegion, p);
             cb.onRawErasingTouchPointListReceived(done);
         } else {
-            cb.onEndRawDrawing(false, p);
+            cb.onEndRawDrawing(outOfRegion, p);
             cb.onRawDrawingTouchPointListReceived(done);
         }
         RectF b = TouchPointList.getBoundingRect(done.getPoints());
@@ -367,24 +398,30 @@ public class RawInputReader implements PenReader.Listener {
         main.postDelayed(penUpRefresh, penUpRefreshMs);
     }
 
-    /** Index of the limit rect containing p; -1 when there is no limit (whole view); -2 when outside all. */
-    private int limitIndex(TouchPoint p) {
-        List<Rect> lim = limit;
-        if (lim.isEmpty()) return -1;
-        for (int i = 0; i < lim.size(); i++) if (lim.get(i).contains((int) p.x, (int) p.y)) return i;
-        return -2;
-    }
-
-    private boolean excluded(TouchPoint p) {
-        for (Rect r : exclude) if (r.contains((int) p.x, (int) p.y)) return true;
-        return false;
-    }
-
-    /** SF's rule per point: inside a limit rect (the starting one in single-region mode), not excluded. */
+    /**
+     * The native {@code PenManager::inValidRegion}: the point, padded by half the stroke width, fits a
+     * limit rect (single-region mode: the one this contact hit first) and touches no exclude rect.
+     */
     private boolean valid(TouchPoint p) {
-        int i = limitIndex(p);
-        if (i == -2 || excluded(p)) return false;
-        return !singleRegion || strokeRegion < 0 || i == strokeRegion;
+        float half = strokeWidth / 2;
+        List<Rect> lim = limit;
+        if (!lim.isEmpty()) {
+            int i = 0;
+            while (i < lim.size() && !fits(p, half, lim.get(i))) i++;
+            if (i == lim.size()) return false;
+            if (singleRegion) {
+                if (contactRegion < 0) contactRegion = i;
+                else if (i != contactRegion) return false;
+            }
+        }
+        for (Rect r : exclude) {
+            if (RegionGate.overlaps(p.x, p.y, half, r.left, r.top, r.right, r.bottom)) return false;
+        }
+        return true;
+    }
+
+    private static boolean fits(TouchPoint p, float half, Rect r) {
+        return RegionGate.fits(p.x, p.y, half, r.left, r.top, r.right, r.bottom);
     }
 
     // ---- main thread ----

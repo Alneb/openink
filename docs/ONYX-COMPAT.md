@@ -27,7 +27,9 @@ Read from knote2's decompiled SDK (`firmware/onyx/pen/knote2_src/sources/com/ony
 | `TouchHelper.create(view, cb)` | holds the view + callback; nothing starts yet |
 | `openRawDrawing()` | starts `PenReader`; builds a `MapCalibrator` (raw → screen, see below); installs a **non-consuming** touch listener for calibration; opens instant ink after layout. Failures are **logged, not thrown** (tag `openink-compat`), as the Onyx SDK does |
 | `closeRawDrawing()` | stops the reader (joins the pen thread), removes listeners, closes the SF session |
-| `setLimitRect(...)`, `setExcludeRect(...)` | view-relative rects. Strokes may only **start** inside a limit rect (or anywhere if none) and outside every exclude rect. SF takes the limit at open, so changing it reopens instant ink |
+| `TouchHelper.create(view, renderSet, cb[, touchListenerEnabled])`, `create(view, sfRender, cb)` | render-set bit 2 (`SFTouchRender`, the default): the evdev reader as below; bits 1 / 4 only (`AppTouchRender` / `AppPenTouchRender`): the host view's stylus MotionEvents, batched history included. `sfRender` true = set 2, false = set 1. The trailing boolean is the SDK's `setTouchListenerEnabled` |
+| `setLimitRect(...)`, `setExcludeRect(...)` | view-relative rects, tested as the native reader does: the point padded by half the stroke width must fit a limit rect (or anywhere if none) and touch no exclude rect. Leaving the region **ends** the stroke (`onEnd…(true, …)`), coming back starts a new one (`RegionGate`). SF takes the limit at open, so changing it reopens instant ink |
+| leading booleans of the callbacks | `onBeginRawDrawing`: always `false` (the native reader never sets `shortcutDrawing`); `onBeginRawErasing`: `true` for side-button erasing (`shortcutErasing`); `onEnd…`: `true` when the stroke ended because the pen left the region (`outLimitRegion`) |
 | `setStrokeWidth/Color/Style` | stored, and pushed to SF when the session is open |
 | `setRawDrawingRenderEnabled(false/true)` | SF pause / `post()` + resume: the app redraws while off, and its picture is shown over the quick ink when back on |
 | `setRawInputReaderEnable(b)` | new strokes are ignored while off (a stroke in progress finishes) |
@@ -59,13 +61,9 @@ flag, so after a pause/resume a locked map stayed on the guess forever. The demo
 calibrator across resumes.
 
 ## Not mirrored (yet)
-- `create(View, int, RawInputCallback)`, `create(View, boolean, RawInputCallback)` and
-  `create(View, int, RawInputCallback, boolean)`: the extra flags' meaning is not known, and
-  guessing would silently change behaviour.
 - The event bus (`register/unregister`, `getEventBusHolder`): Onyx EventBus types, not app API.
   (Finger-touch modes, multi-region mode, `setPostInputEvent`, `setFilterRepeatMovePoint` and the whole
   `EpdController` are implemented now; the full list is in [API-COVERAGE.md](API-COVERAGE.md).)
-- The leading boolean of `onBegin/onEnd...` is always `false` (its Onyx meaning is not known).
 
 ## Verification status
 Compiles with `javac -Xlint:all -Werror` against android.jar as part of the demo build

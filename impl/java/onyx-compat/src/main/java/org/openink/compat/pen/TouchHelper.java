@@ -22,8 +22,13 @@ import org.openink.pen.StrokeStyle;
  * framework lets this app reach it, and is simply absent otherwise: the callbacks still arrive, so
  * the app draws the stroke itself.
  *
+ * <p>{@code create(View, int, ...)} takes the SDK's render set: with bit 2 ({@code SFTouchRender})
+ * input comes from the evdev reader, as above; without it (bits 1 {@code AppTouchRender} and 4
+ * {@code AppPenTouchRender}) from the host view's stylus MotionEvents. The SDK's two app renders
+ * differ only in which quick ink they draw themselves; here {@link InkSession} draws it either way.
+ *
  * <p>Not mirrored: the event bus ({@code register}, {@code unregister}, {@code getEventBusHolder},
- * Onyx-internal types) and the {@code create(View, int|boolean, ...)} render-set flags.
+ * Onyx-internal types).
  */
 public final class TouchHelper {
     private static final String TAG = "openink-compat";
@@ -40,6 +45,9 @@ public final class TouchHelper {
     private int strokeStyle = StrokeStyle.PENCIL.value;
     private boolean created, inputEnabled = true, renderEnabled = true;
     private boolean touchListenerEnabled = true, scrollListenerEnabled;
+    /** Render set without bit 2: stylus MotionEvents instead of the evdev reader. */
+    private boolean appInput;
+    private static final int RENDER_SF = 2;
     private boolean fingerTouch, onlyFingerTouch, fingerPressure;
     private float fingerTouchPressure = 1f;
 
@@ -49,9 +57,27 @@ public final class TouchHelper {
         bind(view, callback);
     }
 
+    /** The SDK picks render set 2 when the device has a stylus (1 otherwise); openink needs the stylus. */
     public static TouchHelper create(View view, RawInputCallback callback) {
+        return create(view, RENDER_SF, callback, true);
+    }
+
+    /** {@code sfRender}: render set 2 (evdev reader) when true, 1 (MotionEvents) when false. */
+    public static TouchHelper create(View view, boolean sfRender, RawInputCallback callback) {
+        return create(view, sfRender ? RENDER_SF : 1, callback);
+    }
+
+    public static TouchHelper create(View view, int renderSet, RawInputCallback callback) {
+        return create(view, renderSet, callback, true);
+    }
+
+    /** {@code touchListenerEnabled}: install the host view's touch listener on open (the SDK's default true). */
+    public static TouchHelper create(View view, int renderSet, RawInputCallback callback, boolean touchListenerEnabled) {
         if (view == null) throw new IllegalArgumentException("hostView should not be null!");
-        return new TouchHelper(view, callback);
+        TouchHelper h = new TouchHelper(view, callback);
+        h.appInput = (renderSet & RENDER_SF) == 0;
+        h.touchListenerEnabled = touchListenerEnabled;
+        return h;
     }
 
     public View getHostView() {
@@ -90,8 +116,10 @@ public final class TouchHelper {
         if (created) return this;
         reader.setRawInputCallback(callback); // quit() cleared it
         reader.setRegions(limit, exclude);
-        reader.start();
-        if (!reader.isFdValid()) return this;
+        if (!appInput) {
+            reader.start();
+            if (!reader.isFdValid()) return this;
+        }
         created = true;
         reader.setPenInput(!onlyFingerTouch);
         if (inputEnabled) reader.resume();
@@ -310,12 +338,33 @@ public final class TouchHelper {
     public boolean onTouchEvent(MotionEvent e) {
         int tool = e.getToolType(0);
         if (tool == MotionEvent.TOOL_TYPE_FINGER) return finger(e);
+        if (appInput) return appPen(e, tool);
         MapCalibrator c = reader.calibrator();
         if (c == null || (tool != MotionEvent.TOOL_TYPE_STYLUS && tool != MotionEvent.TOOL_TYPE_ERASER)) return false;
         int a = e.getActionMasked();
         if (a == MotionEvent.ACTION_DOWN) c.screenContact(PenReader.DOWN, e.getRawX(), e.getRawY(), e.getEventTime());
         if (a == MotionEvent.ACTION_UP) c.screenContact(PenReader.UP, e.getRawX(), e.getRawY(), e.getEventTime());
         return false;
+    }
+
+    /** App-side input: the stylus MotionEvent, its batched history first, becomes the stroke. */
+    private boolean appPen(MotionEvent e, int tool) {
+        if (!created || (tool != MotionEvent.TOOL_TYPE_STYLUS && tool != MotionEvent.TOOL_TYPE_ERASER)) return false;
+        int a;
+        switch (e.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN: a = PenReader.DOWN; break;
+            case MotionEvent.ACTION_MOVE: a = PenReader.MOVE; break;
+            case MotionEvent.ACTION_UP: a = PenReader.UP; break;
+            case MotionEvent.ACTION_CANCEL: a = PenReader.FORCED_UP; break;
+            default: return false;
+        }
+        boolean erase = tool == MotionEvent.TOOL_TYPE_ERASER;
+        for (int i = 0; i < e.getHistorySize(); i++) {
+            reader.motionPoint(PenReader.MOVE, e.getHistoricalX(i), e.getHistoricalY(i), e.getHistoricalPressure(i),
+                    e.getHistoricalEventTime(i), erase);
+        }
+        reader.motionPoint(a, e.getX(), e.getY(), e.getPressure(), e.getEventTime(), erase);
+        return true;
     }
 
     private boolean finger(MotionEvent e) {

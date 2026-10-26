@@ -166,10 +166,13 @@ knote2 bundles the Onyx SDK (`com.onyx.android.sdk.*`); its native libs are **no
 - **`EpdPenManager`** — thin: `moveTo/quadTo/setStrokeColor/setStrokeStyle` → EpdController;
   `setScreenHandWritingPenState(view, n)` with **0 = quit, 1 = start drawing, 2 = resume, 3 = pause**.
 - **`RawInputReader`** (Java side of `libonyx_pen_touch_reader.so`) — native calls back
-  `onTouchPointReceived(x, y, pressure, size, ?, erasing, …, action, timestamp)`; action codes seen:
-  0 down, 1 move, 2 up, 3 up (variant flag), 5 hover/active, 6 forced release ("EpdShapeHandler pen
-  force release"). Delivered to `RawInputCallback`: `onBeginRawDrawing/Erasing`,
-  `onRawDrawingTouchPointMoveReceived`, `onRawDrawingTouchPointListReceived`, `onEndRawDrawing`,
+  `onTouchPointReceived(x, y, pressure, size, ?, erasing, shortcutDrawing, shortcutErasing, action,
+  timestamp)` (JNI `(FFIIIZZZIJ)V`); action codes: 0 down, 1 move, 2 up, 3 the pen left the valid
+  region (the stroke ends there, `PenManager::quadOutRegion`; re-entering starts a new stroke), 5
+  hover/active, 6 forced release (`pausePen`, "EpdShapeHandler pen force release"). `shortcutDrawing`
+  is always false (the native queue pushes a constant); `shortcutErasing` marks side-button erasing
+  (reader 3, `SideEraseReader`). Details and the port: [API-COVERAGE.md](API-COVERAGE.md).
+  Delivered to `RawInputCallback`: `onBeginRawDrawing/Erasing`, `onRawDrawingTouchPointMoveReceived`, `onRawDrawingTouchPointListReceived`, `onEndRawDrawing`,
   `onPenActive`, `onPenUpRefresh(RectF)`. `TouchHelper` / `RawInputManager` are the public facade.
 - **`NeoPenNative`** → `libneo_pen.so` (3.8 MB, internals hidden; exports only JNI + spdlog/fmt):
   `nativeCreatePen(penType, NeoPenConfig)`, `nativeOnPenDown/Move(point, prediction)/Up` →

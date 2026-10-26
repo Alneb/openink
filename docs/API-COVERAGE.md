@@ -31,9 +31,27 @@ Notes:
   `TinyPoint` (tilt packed into `size`); `pointsTo/FromByteArray` is knote2's 24 B/point big-endian blob
   (host check `TouchPointListCheck`).
 - **RawInputReader is now the pen core**: TouchHelper delegates input to it, as Onyx's does.
-  Point filtering follows SF's `PenManager::inValidRegion` (every point in a limit rect, latched to the
-  starting rect in single-region mode, never in an exclude rect). Pen-down/up also feed the refresh
-  engine, which holds explicit refreshes while the pen writes.
+  Point filtering follows the native reader's `PenManager::inValidRegion` (libonyx_pen_touch_reader):
+  every point, padded by half the stroke width, fits a limit rect (in single-region mode the first one
+  the contact hit) and touches no exclude rect. Pen-down/up also feed the refresh engine, which holds
+  explicit refreshes while the pen writes.
+- **One contact can make several strokes** (`RegionGate`, from the native `BaseReader::onEvent`): leaving
+  the valid region ends the stroke (native action 3, `onEnd…(outLimitRegion = true, …)`, the outside
+  point is not added to the list), re-entering starts a new one, and a pen that lands outside starts
+  its stroke where it enters. A pen-up while outside reports nothing more. Host check `RegionGateCheck`.
+- **The callbacks' leading booleans** (named in the framework's copy of the reader and in knote2's
+  Kotlin metadata): `onBeginRawDrawing(shortcutDrawing)` is always `false`, because the native reader
+  hard-codes that slot (`TouchConsumer::onTouchEvent` pushes a constant `false`).
+  `onBeginRawErasing(shortcutErasing)` is `true` when the side (barrel) button made the pen erase
+  (native reader 3, `SideEraseReader`), `false` for the eraser end. `onEnd…(outLimitRegion)` is the
+  action-3 case above.
+- **`TouchHelper.create(View, int renderSet, cb[, boolean touchListenerEnabled])` and
+  `create(View, boolean, cb)`** (true = set 2, false = set 1). Render-set bits: 2 `SFTouchRender` (the
+  native reader plus SurfaceFlinger ink), 1 `AppTouchRender` and 4 `AppPenTouchRender` (the host view's
+  MotionEvents, with ink pushed through `EpdController.moveTo/quadTo`). The SDK's default is 2 when the
+  device has a stylus. openink: with bit 2, the evdev reader; without it, the view's stylus MotionEvents
+  (batched history included) through the same region gate. Instant ink comes from `InkSession` either
+  way, since the SDK's app renders differ only in which ink they draw themselves.
 - `TouchHelper.setFilterRepeatMovePoint` forwards to `setPenUpRefreshEnabled` in the SDK (an Onyx bug);
   mirrored on purpose, since apps already live with it.
 - **EpdController: 100/100**, `org.openink.compat.epd`: refreshes through the open engine

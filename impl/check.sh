@@ -32,13 +32,15 @@ if [ "${1:-}" = --no-device-builds ]; then echo; echo "[check] PASS (device buil
 stage "4 Android: Rust cross-build + the demo APK (javac -Werror against android.jar)"
 java/demo/build-demo.sh
 
-stage "5 onyx-compat compiles; demo host checks: PageFile round trip, ShapeSnap (android.jar on the classpath: classes load, no Android calls)"
+stage "5 onyx-compat compiles; demo host checks: PageFile round trip, ShapeSnap, compat TouchPointList + RegionGate (android.jar on the classpath: classes load, no Android calls)"
 aj=$(ls "$tc"/unpack/*/android.jar | head -1)
 javac --release 17 -Xlint:all -Werror -cp "$aj" -d "$work/demo" \
   $(find java/openink/src/main/java java/onyx-compat/src/main/java java/demo/src -name '*.java') java/demo/test/org/openink/demo/PageFileCheck.java \
-  java/onyx-compat/src/test/java/org/openink/compat/pen/TouchPointListCheck.java java/demo/test/org/openink/demo/ShapeSnapCheck.java
+  java/onyx-compat/src/test/java/org/openink/compat/pen/TouchPointListCheck.java java/demo/test/org/openink/demo/ShapeSnapCheck.java \
+  java/onyx-compat/src/test/java/org/openink/compat/pen/RegionGateCheck.java
 java -cp "$work/demo:$aj" org.openink.demo.PageFileCheck
 java -cp "$work/demo:$aj" org.openink.demo.ShapeSnapCheck
 java -cp "$work/demo:$aj" org.openink.compat.pen.TouchPointListCheck
+java -cp "$work/demo:$aj" org.openink.compat.pen.RegionGateCheck
 
 echo; echo "[check] PASS"
