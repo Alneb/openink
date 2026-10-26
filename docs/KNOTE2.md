@@ -1,9 +1,9 @@
 # knote2 (Onyx Notes) — storage formats beyond the pen layer
 
-ROADMAP row 5. Static analysis of `firmware/onyx/pen/knote2_src/` (jadx output of
+Static analysis of `firmware/onyx/pen/knote2_src/` (jadx output of
 `knote2-release.apk`, firmware 4.2.1). Not yet checked against a real note on the device. The pen
 and ink side of knote2 is in [ONYX-EPD-PEN.md](ONYX-EPD-PEN.md); its network behaviour is in
-[NETWORK-DEPENDENCIES.md](NETWORK-DEPENDENCIES.md) and patch P3 ([PATCHES.md](PATCHES.md)).
+[NETWORK-DEPENDENCIES.md](NETWORK-DEPENDENCIES.md) and patch P3 (kept private).
 
 ## Where a note lives
 App data root: `/data/data/com.onyx.android.note/` (`AppPaths.appFilesDir`).

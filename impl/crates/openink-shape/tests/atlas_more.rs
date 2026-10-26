@@ -1,4 +1,4 @@
-//! Atlas's 2026-10-18 cases (docs/memory/FROM-ATLAS.md): small regular polygons, hexagons split into 7-gons, and
+//! Atlas's 2026-10-18 cases: small regular polygons, hexagons split into 7-gons, and
 //! one-stroke arrows with a V or closed head. Same generator as Atlas: points 8 ms apart, wobble on x (i) and y (i + 3).
 mod common;
 

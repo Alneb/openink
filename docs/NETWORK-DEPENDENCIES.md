@@ -1,7 +1,7 @@
 # Network dependencies & telemetry — BOOX Note Air 5C, firmware 4.2.1
 
-**Goal (user, 2026-10-16):** a rebuilt image that depends on **no vendor server at all** — only
-"the classic ones" (DNS, NTP, connectivity check). So this is an inventory of *every* outbound
+**Goal (2026-10-16):** a rebuilt image that depends on **no vendor server at all**, only the
+classic ones (DNS, NTP, connectivity check). So this is an inventory of *every* outbound
 dependency: who calls it, when, what it sends, and what breaks without it. Telemetry is the subset
 that sends device/user data without a user action.
 
@@ -130,8 +130,8 @@ handwriting recognition licensing) · `OnyxGetCloudFontsService` · `OnyxDiction
   Wi-Fi connect while bound.
 - Offline: the feature can't work without the Onyx backend.
   - **R4** remove `ai-assistant`: loses the assistant UI, tile and floating button. The kreader2
-    selection panel's AI entry still binds ksync. **Decided 2026-10-17 (user: "remove the ai
-    assistant yeah")**: applied by `rebuild_images.py` ([REBUILD.md](REBUILD.md)).
+    selection panel's AI entry still binds ksync. **Decided 2026-10-17**: removed in the
+    rebuilt image (the rebuild tooling is kept private).
   - **Patched (P3 rule 4):** the network listener is a no-op, so the reconnect-triggered fetch
     is gone. Pointing the assistant at a
     local LLM would mean re-implementing the `service/ai/*` API: a separate project.
@@ -214,9 +214,9 @@ OS framework** (`gmscompat` hooks across `frameworks/base` + the GmsCompat app +
 ordinary unprivileged apps). Here the framework is a **prebuilt, Onyx-modified `framework.jar` /
 `services.jar`** (no source), so porting means re-applying GrapheneOS's framework patches as smali
 against Onyx's binaries — large, fragile across OTAs.
-**Decided 2026-10-17:** remove the privileged Google stack, and port gmscompat. Plan, inventory,
-measurements and stages are in [SANDBOXED-PLAY.md](SANDBOXED-PLAY.md). Stage 0 for the locked device
-today: `docs/scripts/gms_disable_adb.sh` (`pm disable-user`, reversible). No Onyx app calls GMS
+**Decided 2026-10-17:** remove the privileged Google stack, and port gmscompat. The plan, inventory,
+measurements and stages are kept in private notes. Stage 0 for the locked device
+today: disabling the Google packages over adb (`pm disable-user`, reversible). No Onyx app calls GMS
 APIs; their `gms`/`firebase` classes are transitive library code.
 
 ## All bundled apps — static triage

@@ -31,3 +31,11 @@ progress: what is marked "not yet checked on a device" is read from static analy
 - The SDK: [sdk_bindings.py](scripts/sdk_bindings.py), [sdk_coverage.py](scripts/sdk_coverage.py) (the API-COVERAGE table).
 - Static analysis helpers: [kxrefs.py](scripts/kxrefs.py) (arm64 caller scan), [fdt_dump.py](scripts/fdt_dump.py) (DTB/DTBO → text), [apk_net_triage.py](scripts/apk_net_triage.py), [myscript_res.py](scripts/myscript_res.py).
 - Training: [train_shape.py](scripts/train_shape.py), [train_hwr.py](scripts/train_hwr.py), [hwr_synth.py](scripts/hwr_synth.py), [hwr_words.py](scripts/hwr_words.py), [hwr_kinds.py](scripts/hwr_kinds.py), [physics_vocab.py](scripts/physics_vocab.py).
+
+## Markdown outside `docs/`
+Kept next to what they describe, where a tool or a reader looks for them:
+- [../README.md](../README.md): the project's front page.
+- [../AGENTS.md](../AGENTS.md): rules for AI coding agents (agents look for this file at the repository root).
+- [../impl/java/neo-oracle/README.md](../impl/java/neo-oracle/README.md): the on-device oracle that runs the stock pen library beside openink-stroke.
+- [../impl/crates/openink-shape/weights/README.md](../impl/crates/openink-shape/weights/README.md): where the shape weights come from and how to retrain them.
+- [../impl/crates/openink-hwr/weights/README.md](../impl/crates/openink-hwr/weights/README.md): where the handwriting weights come from, and the parity fixture.

@@ -5,7 +5,7 @@ For every public method of SDMDevice (knote2's bundled SDK, jadx output), list t
 invokes by reflection: `FIELD = ReflectUtil.get[Declared]MethodSafely(classVar, "name", argTypes…)` binds
 a field; a method body that passes FIELD (or a local alias of it) to `ReflectUtil.invokeMethodSafely`
 calls it. Shape-based: class variables, arg-type variables and aliases are resolved, not hardcoded.
-Usage: sdk_bindings.py <SDMDevice.java> [out.tsv]   (read the output through docs/scripts/safecat.sh)
+Usage: sdk_bindings.py <SDMDevice.java> [out.tsv]
 """
 import re
 import sys

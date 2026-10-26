@@ -2,9 +2,9 @@
 
 Goal: *"reimplement 100% of the functions in this whole stack"*. This file
 is the checklist for the app-facing layer (L1): every public method name of the Onyx SDK classes
-apps call, from knote2's bundled SDK (`firmware/onyx/pen/knote2_src`, read through safecat),
+apps call, from knote2's bundled SDK (`firmware/onyx/pen/knote2_src`),
 compared by name with `impl/java/onyx-compat`. Regenerate the table with
-`python3 -I docs/scripts/sdk_coverage.py | docs/scripts/safecat.sh` . Names only: a covered name still needs its behavior checked on the device.
+`python3 -I docs/scripts/sdk_coverage.py`. Names only: a covered name still needs its behavior checked on the device.
 
 Scope rule: instant-ink and display calls go through the system's own `android.onyx.ViewUpdateHelper`
 (`OnyxFrameworkBackend`, with the app's whitelist entry) and the public `View.refreshScreen`. The

@@ -8,8 +8,7 @@ argument types, same callback order. It needs no Onyx library in the app: pen in
 evdev reader (`libopenink_jni.so`), not from `libonyx_pen_touch_reader.so`.
 
 ## Where the API shape came from
-Read from knote2's decompiled SDK (`firmware/onyx/pen/knote2_src/sources/com/onyx/android/sdk/`,
-through `docs/scripts/safecat.sh`):
+Read from knote2's decompiled SDK (`firmware/onyx/pen/knote2_src/sources/com/onyx/android/sdk/`):
 - `pen/RawInputCallback.java` — 8 abstract callbacks (`onBeginRawDrawing(boolean, TouchPoint)`,
   `onEndRawDrawing`, `onRawDrawingTouchPointMoveReceived`, `onRawDrawingTouchPointListReceived`,
   and the four `...Erasing...` twins) plus two optional ones, `onPenActive(TouchPoint)` and

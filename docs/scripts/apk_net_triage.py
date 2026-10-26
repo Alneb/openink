@@ -6,7 +6,6 @@ third-party SDK markers (by class-descriptor prefix) and network endpoints (URL 
 read straight from the dex string tables. Output is a Markdown report on stdout.
 
 Usage: apk_net_triage.py APK... > report.md
-Pipe terminal views through docs/scripts/safecat.sh (project rule).
 """
 import re
 import struct

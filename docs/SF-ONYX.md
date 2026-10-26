@@ -1,9 +1,8 @@
 # The Onyx layer inside SurfaceFlinger — inventory and reverse-engineering plan
 
-**Request (user, 2026-10-17):** *"can you please reimplemente the surfaceflinger"*, then
-*"the main goal is a 100% remplementaion of the whole drawing + eink stack … we want something
-functional for a locked device"*, refresh policy = **own policy**, and *"remember you have rea, we need
-to understand 100% of all the function in this stack and reimplement them"*.
+**Goal (2026-10-17):** reimplement SurfaceFlinger's Onyx layer, as part of a complete reimplementation of
+the drawing + e-ink stack that works on a locked device, with its **own refresh policy**; every function in
+the stack is understood before it is reimplemented.
 
 Binary: `firmware/onyx/sf/surfaceflinger` (system image, firmware 4.2.1, 12.5 MB, arm64, stripped,
 sha256 `b99500764a28d6b64d74b55f21f8aead6a28d52fe8e4f910506d4d84b7e245c3`).
@@ -44,7 +43,7 @@ from cross-references).
 | **neo::pen** (stroke geometry) | `NeoFountainPen(V2)`, `NeoBrushPen`, `NeoMarkerPen`, `NeoPencilPen`, `NeoCharcoalPen(V2)`, `NeoBallpointPen`, `NeoSquarePen`, splines, filters, brushes, `neopen_*` C API | ~300 | ~90 000 | a static copy of `libneo_pen.so`, already studied ([STROKE.md](STROKE.md)) and ported (`impl/crates/openink-stroke`) |
 
 ## Strings (log messages) that pin behaviour
-Read through `docs/scripts/safecat.sh`; full list in `firmware/onyx/sf/onyx_strings.txt`. Notable:
+Full list in `firmware/onyx/sf/onyx_strings.txt`. Notable:
 `processOnyxRequests %x`; `### sf epdc region received: %d %d %d %d mode: %d`; `commitEpdc`;
 `refresh screen (%d, %d - %d, %d) waveform_mode %d flags 0x%x marker %d`;
 `### add full screen epdc, mVisibleRegionsDirty %d mGeometryDirty %d`; `### create epdc by update entry.`;

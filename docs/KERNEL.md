@@ -8,7 +8,7 @@
   model "Lagoon MTP NoteAir5C v10/v20/v30"). **Correction:** this doc first said
   SDM662, inferred from `CONFIG_*_SDM662` names. Those names come from a kernel shared across BOOX
   models. See [EBC-ABI.md](EBC-ABI.md).
-- Boot image header v2, `os version 11.0.0`, patch 2025-10 (see FIRMWARE-EXTRACTION.md).
+- Boot image header v2, `os version 11.0.0`, patch 2025-10.
 
 ## Artifacts (gitignored, in `firmware/unpacked/boot/`)
 - `kernel` (raw arm64 Image), `kernel.config` (IKCONFIG), `dtb` (407904 B).

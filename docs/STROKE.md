@@ -6,7 +6,7 @@ pen-up, replaces it with a high-quality render from `libneo_pen.so`. This crate 
 layer, open: `impl/crates/openink-stroke` (Rust, pure, host-tested), JNI in
 `impl/crates/openink-jni/src/stroke.rs`, Java API in `impl/java/openink/.../stroke/`.
 
-## What was taken from the firmware (knote2 jadx, read through safecat)
+## What was taken from the firmware (knote2 jadx)
 `libneo_pen.so` exports only 7 JNI functions, but its C++ type info names the whole internal design. See **libneo_pen.so internals** below (read with rea/Ghidra). The **contract** around it is visible from Java too. Shape recognition (circle/rectangle snapping) is a different system, see [SHAPE-RECOGNITION.md](SHAPE-RECOGNITION.md):
 
 | knote2 class | fact used |

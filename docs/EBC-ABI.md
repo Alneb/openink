@@ -26,7 +26,7 @@ config), [ONYX-EPD-PEN.md](ONYX-EPD-PEN.md) (framework / SF / pen side).
   shows `onyx_waveform_parse_*` is only called from `onyx_epdc_fb_fw_handler`.
 
 ## Built-in firmware (`CONFIG_EXTRA_FIRMWARE`, extracted)
-`docs/scripts/extract_builtin_fw.py` → `firmware/onyx/builtin_fw/` (gitignored). The
+Extracted locally to `firmware/onyx/builtin_fw/` (gitignored; the extraction helper is kept private). The
 `.builtin_fw` table's pointers are zero in the Image (filled by boot-time relocation), so the
 script uses the table sizes, a 16-byte layout and the `_fw_*_bin` symbols. All 15 offsets are
 checked against their symbols.

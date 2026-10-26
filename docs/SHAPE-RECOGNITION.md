@@ -1,7 +1,7 @@
 # Shape recognition in knote2 — how "draw a circle, hold, it snaps" works
 
 How knote2 processes strokes, and its circle and square recognition. Read from the knote2 jadx sources
-(`firmware/onyx/pen/knote2_src`), every read through `docs/scripts/safecat.sh`.
+(`firmware/onyx/pen/knote2_src`).
 
 ## Two different things were being called "hidden"
 - **Stroke rendering** (how a pen-down…pen-up becomes ink: width, taper, pencil grain): done in
@@ -43,7 +43,7 @@ The same recognizer also serves the Text / Math / Diagram conversion pens
 
 ## Consequences for openink
 - Steps 1–3 and 5 are simple and fully documented above; only step 4 (the fitting) is the closed
-  MyScript engine. It works offline once patch P1 is in (see [PATCHES.md](PATCHES.md)), but it
+  MyScript engine. It works offline once its activation check is patched out (patch P1, kept private), but it
   is licensed, closed code.
 - An open replacement for step 4 is very doable without machine learning: classify one stroke by
   closure (end-to-start gap vs. length), corner count (Douglas–Peucker / curvature), and residual

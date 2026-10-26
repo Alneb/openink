@@ -1,16 +1,15 @@
 # Open stack — open-source reimplementation of the e-ink display, stylus and API layers
 
-**Request (user, 2026-10-17):** *"could you do a reimplementation of the drivers for the e-ink
-display and the stylus, and all the apis, open source, such that they work exactly as the one here
-but open source?"* + *"it would be great to use rust + java"*.
+**Goal (2026-10-17):** an open-source reimplementation, in Rust + Java, of the e-ink display and stylus
+drivers and all their APIs, behaving exactly like the stock ones.
 
-**Decisions (scoping questions, same day):**
+**Decisions (same day):**
 | question | answer | consequence |
 |---|---|---|
 | scope | **full stack in sequence** | plan all four layers; build top-down, each layer tested against the stock layers below it |
 | compatibility | **clean API + compat shim** | an idiomatic Rust core and a new Java API (`org.openink`); a separate thin `onyx-compat` layer maps the Onyx names onto it |
 | location | **subfolder here** (`impl/`) | this repo stays the spec (RE docs + `impl/spec/*.json`); the code sits beside it |
-| goal | **both, in order** | first: power the author's own stylus app without the closed Onyx SDK; then: replace the Onyx binaries in the rebuilt firmware ([REBUILD.md](REBUILD.md)) |
+| goal | **both, in order** | first: power the author's own stylus app without the closed Onyx SDK; then: replace the Onyx binaries in the rebuilt firmware |
 | ink quality | **the same experience as the stock notes app, as much functionality as possible** | low latency alone is not enough: the target is **knote2 parity**: pressure/tilt-shaped strokes like `libneo_pen` (pencil, brush, fountain, marker, charcoal, ballpoint, square), eraser end + side-button erase, pen-up refresh, and the knote2 storage formats ([KNOTE2.md](KNOTE2.md)). So `openink-stroke` moves from "later" to right after the first device test |
 | license | *"licence mit"* | `impl/` is **MIT** (`impl/LICENSE`, workspace `license = "MIT"`); a future L4 kernel driver must still be GPL-2.0 (it links against the GPL kernel) |
 

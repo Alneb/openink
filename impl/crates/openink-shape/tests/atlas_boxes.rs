@@ -1,4 +1,4 @@
-//! Regression cases from Atlas (docs/memory/FROM-ATLAS.md, 2026-10-17 night): long thin boxes, upright
+//! Regression cases reported by Atlas (2026-10-17 night): long thin boxes, upright
 //! and turned, with evenly sampled sides or at constant pen speed, must come out as rectangles that keep
 //! their turn. Same generator as Atlas's `shape_openink.rs` tests (`polyline()` / `wobble()`).
 

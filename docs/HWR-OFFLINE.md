@@ -3,8 +3,8 @@
 User requirement (2026-10-16): handwriting recognition must keep working **with no vendor
 server**, and open alternatives should be looked at. This doc maps every HWR path in firmware
 4.2.1 and what each needs from the network. Network facts also in
-[NETWORK-DEPENDENCIES.md](NETWORK-DEPENDENCIES.md); the activation patch is P1 in
-[PATCHES.md](PATCHES.md).
+[NETWORK-DEPENDENCIES.md](NETWORK-DEPENDENCIES.md); the activation patch (P1) is kept
+private with the other firmware patches.
 
 ## Two engines
 `com.onyx.android.sdk.note.recognizer.RecognizerManager` keeps one `IHWRResourceDownloader` per

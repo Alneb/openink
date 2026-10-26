@@ -3,7 +3,7 @@
 
 Names only: a covered name still needs its behaviour checked on the device. Obfuscated
 single-letter internals (jadx keeps them public) are not API and are skipped.
-Usage: sdk_coverage.py [repo root]   → markdown table rows on stdout (pipe through safecat.sh)
+Usage: sdk_coverage.py [repo root]   → markdown table rows on stdout
 """
 import re
 import sys

@@ -8,7 +8,7 @@ afterwards by the app (knote2 with `libneo_pen`, Atlas/openink with `openink-str
 renderers, their settings or their input points differ, the line visibly changes when it settles.
 
 Everything below is read from the Ghidra decompile of `surfaceflinger` 4.2.1 (`firmware/onyx/sf/decomp/`,
-names from its MiniDebugInfo; read through `docs/scripts/safecat.sh`) and from knote2's jadx output.
+names from its MiniDebugInfo) and from knote2's jadx output.
 Ghidra addresses = ELF vaddr + 0x100000.
 
 ## 1. Input: from evdev to painter points (`android::TouchReader`, `PenManager`, `DrawReader`)
