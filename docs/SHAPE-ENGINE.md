@@ -202,8 +202,8 @@ heads, and the fitter only looked for barbs, so all of those were Rejected.
 - Tests: `a_triangle_is_a_closed_head_and_a_lollipop_is_not`, `largest_inscribed_triangle`, and the Java
   `ShapeWireCheck` closed-head case.
 
-Still open: a closed head drawn in the same stroke as the shaft; double-line shafts (⇒, crop 800); crops
-that include neighbouring scribbles (968).
+Still open: double-line shafts (⇒, crop 800); crops that include neighbouring scribbles (968). (A closed head drawn
+in the same stroke as the shaft is handled since: `is_triangle_head`, below.)
 
 **One-stroke closed heads (2026-10-18).** Atlas's tail → tip → b1 → b2 → tip arrow at length 120 was Rejected:
 the barbs were found (Arrow cost 0.83) but the classifier gave Reject 54 % vs Arrow 45 % (reject cost 0.62).

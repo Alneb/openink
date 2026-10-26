@@ -37,27 +37,16 @@ pub struct Ink {
 }
 
 impl Ink {
-    fn new(output: Output) -> Self {
+    pub(crate) fn new(output: Output) -> Self {
         Ink { output, data: Vec::new(), bounds: None }
-    }
-
-    pub(crate) fn empty_fill() -> Self {
-        Ink::new(Output::Fill)
-    }
-
-    pub(crate) fn empty(output: Output) -> Self {
-        Ink::new(output)
-    }
-
-    pub(crate) fn grow_by(&mut self, x: f32, y: f32, pad: f32) {
-        self.grow(x, y, pad);
     }
 
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
-    fn grow(&mut self, x: f32, y: f32, pad: f32) {
+    /// Widen `bounds` to cover (x, y) padded by `pad`.
+    pub(crate) fn grow(&mut self, x: f32, y: f32, pad: f32) {
         let b = self.bounds.get_or_insert([x, y, x, y]);
         b[0] = b[0].min(x - pad);
         b[1] = b[1].min(y - pad);
@@ -275,20 +264,8 @@ impl ActiveStroke {
     pub fn moved(&mut self, samples: &[Sample]) -> Ink {
         match &mut self.0 {
             Active::Spline(s) => s.moved(samples),
-            Active::Brush(b) => {
-                let mut ink = Ink::empty_fill();
-                for &p in samples.iter().filter(|p| p.is_finite()) {
-                    ink.extend(b.moved(p));
-                }
-                ink
-            }
-            Active::Marker(m) => {
-                let mut ink = Ink::empty(Output::Translucent);
-                for &p in samples.iter().filter(|p| p.is_finite()) {
-                    ink.extend(m.to(p));
-                }
-                ink
-            }
+            Active::Brush(b) => each_finite(samples, Output::Fill, |p| b.moved(p)),
+            Active::Marker(m) => each_finite(samples, Output::Translucent, |p| m.to(p)),
         }
     }
 
@@ -307,6 +284,15 @@ impl ActiveStroke {
             }
         }
     }
+}
+
+/// The ink of `step` over each finite sample (the brush and marker pipelines take one point at a time).
+fn each_finite(samples: &[Sample], output: Output, mut step: impl FnMut(Sample) -> Ink) -> Ink {
+    let mut ink = Ink::new(output);
+    for &p in samples.iter().filter(|p| p.is_finite()) {
+        ink.extend(step(p));
+    }
+    ink
 }
 
 impl SplineStroke {
@@ -513,15 +499,10 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
-/// Catmull-Rom from `p1` to `p2` with `p0` before and the chord as the end tangent.
 /// The segment p1 → p2 of a uniform Catmull-Rom spline over every sample channel, in libneo's matrix form
 /// `[1, t, t², t³] · M · [p0, p1, p2, p3]` (SplineProducer; M from `_INIT_3`).
 fn catmull_rom(p: &[Sample; 4], t: f32) -> Sample {
-    let (t2, t3) = (t * t, t * t * t);
-    let h = |a: f32, b: f32, c: f32, d: f32| {
-        b + 0.5 * (c - a) * t + (a - 2.5 * b + 2.0 * c - 0.5 * d) * t2 + (-0.5 * a + 1.5 * b - 1.5 * c + 0.5 * d) * t3
-    };
-    let ch = |f: fn(&Sample) -> f32| h(f(&p[0]), f(&p[1]), f(&p[2]), f(&p[3]));
+    let ch = |f: fn(&Sample) -> f32| cr1([f(&p[0]), f(&p[1]), f(&p[2]), f(&p[3])], t);
     Sample {
         x: ch(|s| s.x),
         y: ch(|s| s.y),
@@ -532,10 +513,11 @@ fn catmull_rom(p: &[Sample; 4], t: f32) -> Sample {
     }
 }
 
-/// One channel of the uniform Catmull-Rom segment (same basis as [`catmull_rom`]).
+/// One channel of the uniform Catmull-Rom segment; [`catmull_rom`] runs it on every sample channel.
 fn cr1(p: [f32; 4], t: f32) -> f32 {
     let [a, b, c, d] = p;
-    b + 0.5 * (c - a) * t + (a - 2.5 * b + 2.0 * c - 0.5 * d) * t * t + (-0.5 * a + 1.5 * b - 1.5 * c + 0.5 * d) * t * t * t
+    let (t2, t3) = (t * t, t * t * t);
+    b + 0.5 * (c - a) * t + (a - 2.5 * b + 2.0 * c - 0.5 * d) * t2 + (-0.5 * a + 1.5 * b - 1.5 * c + 0.5 * d) * t3
 }
 
 /// libneo's SplineCurvatureInterpolator on x/y (`FUN_00449c44`): split [t0, t1] at its middle while the curve's

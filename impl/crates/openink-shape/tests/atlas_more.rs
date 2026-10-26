@@ -1,14 +1,12 @@
 //! Atlas's 2026-10-18 cases (docs/memory/FROM-ATLAS.md): small regular polygons, hexagons split into 7-gons, and
 //! one-stroke arrows with a V or closed head. Same generator as Atlas: points 8 ms apart, wobble on x (i) and y (i + 3).
+mod common;
+
+use common::wobble;
 use openink_shape::features::Sample;
 use openink_shape::geom::{pt, Pt};
 use openink_shape::model::{Recognition, ShapeClass};
 use openink_shape::recognize::Recognizer;
-
-fn wobble(i: usize) -> f32 {
-    let i = i as f32;
-    ((i * 1.7).sin() + (i * 0.37).cos()) * 0.9
-}
 
 fn stroke(pts: &[Pt]) -> Vec<Sample> {
     pts.iter().enumerate().map(|(i, p)| Sample { x: p.x + wobble(i), y: p.y + wobble(i + 3), t: i as f32 * 8.0 }).collect()

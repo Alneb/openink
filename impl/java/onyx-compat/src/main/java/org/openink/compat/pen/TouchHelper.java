@@ -183,13 +183,13 @@ public final class TouchHelper {
 
     /** SurfaceFlinger draws instant ink for the pen tip. */
     public TouchHelper setBrushRawDrawingEnabled(boolean on) {
-        sfQuiet(() -> OnyxFramework.helper("setBrushRawDrawingEnabled", new Class<?>[]{boolean.class}, on));
+        RawInputReader.sf(() -> OnyxFramework.helper("setBrushRawDrawingEnabled", new Class<?>[]{boolean.class}, on));
         return this;
     }
 
     /** SurfaceFlinger erases instant ink under the eraser; {@code arg} as the SDK passes it (default 5). */
     public TouchHelper setEraserRawDrawingEnabled(boolean on, int arg) {
-        sfQuiet(() -> OnyxFramework.helper("setEraserRawDrawingEnabled", new Class<?>[]{boolean.class, int.class}, on, arg));
+        RawInputReader.sf(() -> OnyxFramework.helper("setEraserRawDrawingEnabled", new Class<?>[]{boolean.class, int.class}, on, arg));
         return this;
     }
 
@@ -228,13 +228,13 @@ public final class TouchHelper {
 
     public TouchHelper setSingleRegionMode() {
         reader.setSingleRegionMode();
-        sfQuiet(() -> EpdController.setScreenHandWritingRegionMode(view, 1));
+        RawInputReader.sf(() -> EpdController.setScreenHandWritingRegionMode(view, 1));
         return this;
     }
 
     public TouchHelper setMultiRegionMode() {
         reader.setMultiRegionMode();
-        sfQuiet(() -> EpdController.setScreenHandWritingRegionMode(view, 0));
+        RawInputReader.sf(() -> EpdController.setScreenHandWritingRegionMode(view, 0));
         return this;
     }
 
@@ -347,7 +347,7 @@ public final class TouchHelper {
             session.setStrokeColor(reader.getStrokeColor());
             session.setStrokeStyle(strokeStyle);
             if (!exclude.isEmpty()) session.setExclude(flat(exclude));
-            if (reader.isSingleRegionMode()) sfQuiet(() -> EpdController.setScreenHandWritingRegionMode(view, 1));
+            if (reader.isSingleRegionMode()) RawInputReader.sf(() -> EpdController.setScreenHandWritingRegionMode(view, 1));
             if (!renderEnabled) session.pause();
         } catch (UnsupportedOperationException e) {
             Log.w(TAG, "no instant ink (stock SurfaceFlinger unreachable): " + e.getMessage());
@@ -366,14 +366,6 @@ public final class TouchHelper {
 
     private void onHostMoved() {
         reader.trackViewPosition();
-    }
-
-    private static void sfQuiet(Runnable r) {
-        try {
-            r.run();
-        } catch (RuntimeException e) {
-            Log.w(TAG, "SurfaceFlinger setting not applied: " + e.getMessage());
-        }
     }
 
     private static int[] flat(List<Rect> rects) {

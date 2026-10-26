@@ -1,5 +1,6 @@
-firmware/
-tools/
+# root-level folders only (an unanchored pattern also matches same-named subfolders)
+/firmware/
+/tools/
 *.img
 *.bin
 *.zip

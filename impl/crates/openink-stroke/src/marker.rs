@@ -20,14 +20,14 @@ pub struct MarkerStroke {
 impl MarkerStroke {
     pub fn down(cfg: &PenConfig, s: Sample) -> (MarkerStroke, Ink) {
         let mut m = MarkerStroke { width: cfg.width, last: (s.x, s.y) };
-        let mut ink = Ink::empty(Output::Translucent);
+        let mut ink = Ink::new(Output::Translucent);
         m.line(&mut ink, s);
         (m, ink)
     }
 
     /// A move or the up point: the same rule.
     pub fn to(&mut self, s: Sample) -> Ink {
-        let mut ink = Ink::empty(Output::Translucent);
+        let mut ink = Ink::new(Output::Translucent);
         self.line(&mut ink, s);
         ink
     }
@@ -39,8 +39,8 @@ impl MarkerStroke {
     fn line(&mut self, ink: &mut Ink, s: Sample) {
         let r = self.width_at(s.pressure) / 2.0;
         geom::capsule(&mut ink.data, (self.last.0, self.last.1, r), (s.x, s.y, r));
-        ink.grow_by(self.last.0, self.last.1, r + 1.0);
-        ink.grow_by(s.x, s.y, r + 1.0);
+        ink.grow(self.last.0, self.last.1, r + 1.0);
+        ink.grow(s.x, s.y, r + 1.0);
         self.last = (s.x, s.y);
     }
 

@@ -9,7 +9,7 @@
 //! (knote2's `PenUtils.drawStrokeByPointSize`).
 
 use crate::geom;
-use crate::pen::PenConfig;
+use crate::pen::{Output, PenConfig};
 use crate::stroke::{Ink, Sample};
 
 /// The constants `BrushPenFactory` (`FUN_00434bc4`) hands the pen; their offsets in `NeoBrushPen::Impl`.
@@ -88,13 +88,13 @@ impl BrushStroke {
             last: (p.x, p.y),
         };
         b.size = b.clamp_width(DOWN_FACTOR * w2 * p.p.powf(PRESSURE_EXP));
-        let mut ink = Ink::empty_fill();
+        let mut ink = Ink::new(Output::Fill);
         b.emit(&mut ink, p.x, p.y, b.size);
         (b, ink)
     }
 
     pub fn moved(&mut self, s: Sample) -> Ink {
-        let mut ink = Ink::empty_fill();
+        let mut ink = Ink::new(Output::Fill);
         let p = Pt::of(s);
         if !self.moving {
             if p.dist(self.down) <= REST_RADIUS {
@@ -112,7 +112,7 @@ impl BrushStroke {
     }
 
     pub fn up(mut self, s: Sample) -> Ink {
-        let mut ink = Ink::empty_fill();
+        let mut ink = Ink::new(Output::Fill);
         let p = Pt::of(s);
         if !self.moving {
             self.emit(&mut ink, p.x, p.y, self.size);
@@ -193,8 +193,8 @@ impl BrushStroke {
     fn emit(&mut self, ink: &mut Ink, x: f32, y: f32, size: f32) {
         let r = size / 2.0;
         geom::capsule(&mut ink.data, (self.last.0, self.last.1, r), (x, y, r));
-        ink.grow_by(self.last.0, self.last.1, r + 1.0);
-        ink.grow_by(x, y, r + 1.0);
+        ink.grow(self.last.0, self.last.1, r + 1.0);
+        ink.grow(x, y, r + 1.0);
         self.last = (x, y);
     }
 

@@ -2,7 +2,7 @@
 //! Input: the same `xyt` / `lens` arrays as the shape recogniser (t is ignored). Output: one string,
 //! `log_prob \t text` per candidate, best first, lines joined by `\n` (the alphabet has neither character).
 
-use crate::shape::strokes_from;
+use crate::shape::read_ink;
 use jni::objects::{JClass, JFloatArray, JIntArray};
 use jni::sys::jstring;
 use jni::JNIEnv;
@@ -25,17 +25,7 @@ pub extern "system" fn Java_org_openink_hwr_HandwritingRecognizer_nativeRecogniz
     xyt: JFloatArray,
     lens: JIntArray,
 ) -> jstring {
-    let read = |env: &mut JNIEnv| -> Option<(Vec<f32>, Vec<i32>)> {
-        let mut a = vec![0f32; env.get_array_length(&xyt).ok()? as usize];
-        env.get_float_array_region(&xyt, 0, &mut a).ok()?;
-        let mut b = vec![0i32; env.get_array_length(&lens).ok()? as usize];
-        env.get_int_array_region(&lens, 0, &mut b).ok()?;
-        Some((a, b))
-    };
-    let Some(strokes) = read(&mut env).and_then(|(a, b)| strokes_from(&a, &b)) else {
-        let _ = env.throw_new("java/lang/IllegalArgumentException", "HandwritingRecognizer: malformed ink arrays");
-        return std::ptr::null_mut();
-    };
+    let Some(strokes) = read_ink(&mut env, &xyt, &lens, "HandwritingRecognizer") else { return std::ptr::null_mut() };
     let pts: Vec<Vec<Point>> = strokes.iter().map(|s| s.iter().map(|p| [p.x, p.y]).collect()).collect();
     match env.new_string(encode(&recognizer().recognize(&pts))) {
         Ok(s) => s.into_raw(),

@@ -14,7 +14,8 @@ outside, and rebuilds them as open code an app can use on a stock, locked device
 - **`impl/`**: the open implementation (MIT).
   - Rust crates: `openink-stroke` (pressure/tilt-shaped strokes for the knote2 pen set), `openink-pen` (the
     digitizer), `openink-epdc` (a refresh engine), `openink-shape` (a shape recogniser with its own trained weights),
-    `openink-hwr` (a handwriting recogniser), `openink-nn`, `openink-sf`, `openink-ebc`, `openink-jni`.
+    `openink-hwr` (a handwriting recogniser), `openink-core` (the typed protocol model), `openink-nn`, `openink-sf`,
+    `openink-ebc`, `openink-jni`.
   - Java: `org.openink.*` (the app-facing API), `onyx-compat` (the Onyx SDK's pen API on top of openink), a demo app.
   - `impl/spec/`: the SurfaceFlinger protocol as data, from which the Rust and Java code tables are generated.
 - **`docs/`**: the findings, from the e-ink hardware and the kernel driver to Boox Notes' file format and its network

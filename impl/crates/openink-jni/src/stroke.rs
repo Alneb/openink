@@ -8,6 +8,8 @@
 use jni::objects::{JByteArray, JClass, JFloatArray};
 use jni::sys::{jbyteArray, jfloatArray, jint, jlong};
 use jni::JNIEnv;
+
+use crate::jvm::{read_floats, throw, write_floats, ILLEGAL_ARGUMENT, ILLEGAL_STATE};
 use openink_stroke::{raster, ActiveStroke, Ink, PenConfig, PenKind, Sample, Stroke};
 
 pub const CONFIG_LEN: usize = 8;
@@ -44,25 +46,6 @@ struct Engine {
     active: Option<ActiveStroke>,
 }
 
-fn throw(env: &mut JNIEnv, class: &str, msg: &str) {
-    let _ = env.throw_new(class, msg);
-}
-
-fn read(env: &mut JNIEnv, a: &JFloatArray) -> Option<Vec<f32>> {
-    let n = env.get_array_length(a).ok()? as usize;
-    let mut v = vec![0f32; n];
-    env.get_float_array_region(a, 0, &mut v).ok()?;
-    Some(v)
-}
-
-fn write(env: &mut JNIEnv, v: &[f32]) -> jfloatArray {
-    let Ok(a) = env.new_float_array(v.len() as i32) else { return std::ptr::null_mut() };
-    if env.set_float_array_region(&a, 0, v).is_err() {
-        return std::ptr::null_mut();
-    }
-    a.into_raw()
-}
-
 /// The engine behind a handle. SAFETY (callers): `h` comes from nativeCreate and is freed only
 /// by nativeFree; StrokeEngine.java confines each engine to one thread and zeroes it on free.
 unsafe fn engine<'a>(h: jlong) -> &'a mut Engine {
@@ -70,10 +53,10 @@ unsafe fn engine<'a>(h: jlong) -> &'a mut Engine {
 }
 
 fn samples_arg(env: &mut JNIEnv, a: &JFloatArray) -> Option<Vec<Sample>> {
-    let v = read(env, a);
+    let v = read_floats(env, a);
     let s = v.as_deref().and_then(samples_from);
     if s.is_none() {
-        throw(env, "java/lang/IllegalArgumentException", "samples must be float[6 n], all finite");
+        throw(env, ILLEGAL_ARGUMENT, "samples must be float[6 n], all finite");
     }
     s
 }
@@ -81,11 +64,11 @@ fn samples_arg(env: &mut JNIEnv, a: &JFloatArray) -> Option<Vec<Sample>> {
 #[no_mangle]
 pub extern "system" fn Java_org_openink_stroke_StrokeEngine_nativeCreate(mut env: JNIEnv, _c: JClass, kind: jint, cfg: JFloatArray) -> jlong {
     let Some(kind) = PenKind::from_code(kind) else {
-        throw(&mut env, "java/lang/IllegalArgumentException", &format!("unknown pen kind {kind}"));
+        throw(&mut env, ILLEGAL_ARGUMENT, &format!("unknown pen kind {kind}"));
         return 0;
     };
-    let Some(cfg) = read(&mut env, &cfg).as_deref().and_then(config_from) else {
-        throw(&mut env, "java/lang/IllegalArgumentException", "config must be float[6] or float[8]");
+    let Some(cfg) = read_floats(&env, &cfg).as_deref().and_then(config_from) else {
+        throw(&mut env, ILLEGAL_ARGUMENT, "config must be float[6] or float[8]");
         return 0;
     };
     Box::into_raw(Box::new(Engine { template: Stroke::new(kind, cfg), active: None })) as jlong
@@ -96,16 +79,16 @@ pub extern "system" fn Java_org_openink_stroke_StrokeEngine_nativeDown(mut env: 
     let e = unsafe { engine(h) };
     let Some(s) = samples_arg(&mut env, &sample) else { return std::ptr::null_mut() };
     let [s] = s[..] else {
-        throw(&mut env, "java/lang/IllegalArgumentException", "down takes one sample");
+        throw(&mut env, ILLEGAL_ARGUMENT, "down takes one sample");
         return std::ptr::null_mut();
     };
     if e.active.is_some() {
-        throw(&mut env, "java/lang/IllegalStateException", "down() during a stroke");
+        throw(&mut env, ILLEGAL_STATE, "down() during a stroke");
         return std::ptr::null_mut();
     }
     let (a, ink) = e.template.down(s);
     e.active = Some(a);
-    write(&mut env, &encode(&ink))
+    write_floats(&env, &encode(&ink))
 }
 
 #[no_mangle]
@@ -113,11 +96,11 @@ pub extern "system" fn Java_org_openink_stroke_StrokeEngine_nativeMove(mut env: 
     let e = unsafe { engine(h) };
     let Some(s) = samples_arg(&mut env, &samples) else { return std::ptr::null_mut() };
     let Some(a) = e.active.as_mut() else {
-        throw(&mut env, "java/lang/IllegalStateException", "move() without down()");
+        throw(&mut env, ILLEGAL_STATE, "move() without down()");
         return std::ptr::null_mut();
     };
     let ink = a.moved(&s);
-    write(&mut env, &encode(&ink))
+    write_floats(&env, &encode(&ink))
 }
 
 #[no_mangle]
@@ -126,15 +109,15 @@ pub extern "system" fn Java_org_openink_stroke_StrokeEngine_nativeUp(mut env: JN
     let Some(s) = samples_arg(&mut env, &sample) else { return std::ptr::null_mut() };
     // Check the argument before taking the stroke, so a bad call leaves it live.
     let [s] = s[..] else {
-        throw(&mut env, "java/lang/IllegalArgumentException", "up takes one sample");
+        throw(&mut env, ILLEGAL_ARGUMENT, "up takes one sample");
         return std::ptr::null_mut();
     };
     let Some(a) = e.active.take() else {
-        throw(&mut env, "java/lang/IllegalStateException", "up() without down()");
+        throw(&mut env, ILLEGAL_STATE, "up() without down()");
         return std::ptr::null_mut();
     };
     let ink = a.up(s);
-    write(&mut env, &encode(&ink))
+    write_floats(&env, &encode(&ink))
 }
 
 /// Whole recorded stroke at once (redraw); does not touch a live stroke.
@@ -143,7 +126,7 @@ pub extern "system" fn Java_org_openink_stroke_StrokeEngine_nativeRender(mut env
     let e = unsafe { engine(h) };
     let Some(s) = samples_arg(&mut env, &samples) else { return std::ptr::null_mut() };
     let ink = e.template.render(&s);
-    write(&mut env, &encode(&ink))
+    write_floats(&env, &encode(&ink))
 }
 
 #[no_mangle]
@@ -173,11 +156,11 @@ pub fn encode_live_pen(p: &openink_stroke::sf::LivePen) -> Vec<f32> {
 
 #[no_mangle]
 pub extern "system" fn Java_org_openink_stroke_LivePen_nativeLivePen(mut env: JNIEnv, _c: JClass, kind: jint, cfg: JFloatArray) -> jfloatArray {
-    let (Some(kind), Some(cfg)) = (PenKind::from_code(kind), read(&mut env, &cfg).as_deref().and_then(config_from)) else {
-        throw(&mut env, "java/lang/IllegalArgumentException", "LivePen: unknown pen kind, or config not float[6]/float[8]");
+    let (Some(kind), Some(cfg)) = (PenKind::from_code(kind), read_floats(&env, &cfg).as_deref().and_then(config_from)) else {
+        throw(&mut env, ILLEGAL_ARGUMENT, "LivePen: unknown pen kind, or config not float[6]/float[8]");
         return std::ptr::null_mut();
     };
-    write(&mut env, &encode_live_pen(&openink_stroke::sf::live_pen(kind, &cfg)))
+    write_floats(&env, &encode_live_pen(&openink_stroke::sf::live_pen(kind, &cfg)))
 }
 
 #[cfg(test)]

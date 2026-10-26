@@ -6,6 +6,8 @@
 use jni::objects::JClass;
 use jni::sys::{jint, jintArray, jlong};
 use jni::JNIEnv;
+
+use crate::jvm;
 use openink_core::UpdateMode;
 use openink_epdc::{Engine, Intent, Millis, Policy, Reason, Rect, Update};
 use std::num::NonZeroU32;
@@ -38,7 +40,7 @@ pub fn encode(updates: &[Update]) -> Vec<i32> {
 }
 
 fn throw(env: &mut JNIEnv, msg: &str) {
-    let _ = env.throw_new("java/lang/IllegalArgumentException", msg);
+    jvm::throw(env, jvm::ILLEGAL_ARGUMENT, msg);
 }
 
 /// SAFETY (callers): `h` comes from nativeCreate and is freed only by nativeFree; EpdEngine.java
@@ -93,12 +95,7 @@ pub extern "system" fn Java_org_openink_epd_EpdEngine_nativePoll(env: JNIEnv, _c
 }
 
 fn to_java(env: JNIEnv, updates: &[Update]) -> jintArray {
-    let v = encode(updates);
-    let Ok(a) = env.new_int_array(v.len() as i32) else { return std::ptr::null_mut() };
-    if env.set_int_array_region(&a, 0, &v).is_err() {
-        return std::ptr::null_mut();
-    }
-    a.into_raw()
+    jvm::write_ints(&env, &encode(updates))
 }
 
 /// Like nativePoll, but sends everything queued at once (EpdController.waitForUpdateFinished).

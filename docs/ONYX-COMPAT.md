@@ -63,10 +63,9 @@ calibrator across resumes.
 - `create(View, int, RawInputCallback)`, `create(View, boolean, RawInputCallback)` and
   `create(View, int, RawInputCallback, boolean)`: the extra flags' meaning is not known, and
   guessing would silently change behaviour.
-- Finger-touch modes (`enableFingerTouch`, `onlyEnableFingerTouch`, `setFingerTouchPressure`),
-  multi-region mode, `setPostInputEvent`, `setFilterRepeatMovePoint`, the event bus
-  (`register/unregister`).
-- The `EpdController` subset (refresh modes): `org.openink.epd.Epd` covers it under openink names.
+- The event bus (`register/unregister`, `getEventBusHolder`): Onyx EventBus types, not app API.
+  (Finger-touch modes, multi-region mode, `setPostInputEvent`, `setFilterRepeatMovePoint` and the whole
+  `EpdController` are implemented now; the full list is in [API-COVERAGE.md](API-COVERAGE.md).)
 - The leading boolean of `onBegin/onEnd...` is always `false` (its Onyx meaning is not known).
 
 ## Verification status

@@ -4,6 +4,7 @@ Findings from studying the Boox Note Air 5C, and the open implementation built f
 progress: what is marked "not yet checked on a device" is read from static analysis only.
 
 ## The open stack (`impl/`)
+- [REFACTOR-IMPL-2026-10.md](REFACTOR-IMPL-2026-10.md): the October 2026 cleanup of `impl/`: recogniser split by shape family, shared JNI marshalling, one Catmull-Rom basis; how it was proven behaviour-preserving.
 - [OPEN-STACK.md](OPEN-STACK.md): the open reimplementation (Rust + Java) of the e-ink, stylus and API layers: decisions, layers L1–L5, spec, crates, build.
 - [STROKE.md](STROKE.md): openink-stroke, an open replacement for `libneo_pen`: the knote2 pen set, width models, wire format, preview.
 - [EPDC-ENGINE.md](EPDC-ENGINE.md): the open refresh engine (openink-epdc + EpdEngine.java): intents, merging, pen holding, ghost ledger, cleanup, BYPASS.

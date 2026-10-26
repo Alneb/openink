@@ -129,10 +129,10 @@ side is about as big as the ink side. Ours:
 ## Status
 
 - Pipeline, crate, parity test, bindings: done; `impl/check.sh` PASS.
-- `weights/hwr.oisw` is still an **untrained placeholder** — pretraining on 50k synthetic words is
-  running; numbers go here when it and the fine-tune finish.
-- Next: lexicon / language-model rescoring of beam candidates (word list + the author's vocabulary),
-  line-level recognition (words joined by the grouping), the demo app's "recognise selection" action.
+- `weights/hwr.oisw` is the trained **`ft4-ds-best`** (see "Shipped model" below): Rnote text CER 0.138, word
+  accuracy 52 % with the physics vocabulary; lexicon and 4-gram LM rescoring of the beam are built.
+- Open: word accuracy (about half the words), line-level recognition (words joined by the grouping), the demo
+  app's "recognise selection" action. Math recognition: decided against (end of this file).
 
 
 ## The stroke-order bug in the real data (2026-10-18)

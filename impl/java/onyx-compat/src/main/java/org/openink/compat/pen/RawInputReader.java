@@ -417,8 +417,8 @@ public class RawInputReader implements PenReader.Listener {
         viewTop = at[1];
     }
 
-    /** A SurfaceFlinger push that may be unavailable (framework missing or blocked): log, never throw. */
-    private static void sf(Runnable r) {
+    /** A SurfaceFlinger push that may be unavailable (framework missing or blocked): log, never throw. Shared with TouchHelper. */
+    static void sf(Runnable r) {
         try {
             r.run();
         } catch (RuntimeException e) {

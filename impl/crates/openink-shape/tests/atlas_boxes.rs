@@ -2,15 +2,13 @@
 //! and turned, with evenly sampled sides or at constant pen speed, must come out as rectangles that keep
 //! their turn. Same generator as Atlas's `shape_openink.rs` tests (`polyline()` / `wobble()`).
 
+mod common;
+
+use common::wobble;
 use openink_shape::features::Sample;
 use openink_shape::geom::{pt, Pt};
 use openink_shape::model::{Primitive, Recognition, ShapeClass};
 use openink_shape::recognize::Recognizer;
-
-fn wobble(i: usize) -> f32 {
-    let i = i as f32;
-    ((i * 1.7).sin() + (i * 0.37).cos()) * 0.9
-}
 
 /// Corners joined by `per_side` evenly spaced points each (or points `spacing` apart), closed, wobbled,
 /// turned by `turn` about (100, 100); t = i·dt ms.

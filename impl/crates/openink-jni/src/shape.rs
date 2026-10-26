@@ -5,6 +5,8 @@
 use jni::objects::{JClass, JFloatArray, JIntArray};
 use jni::sys::jfloatArray;
 use jni::JNIEnv;
+
+use crate::jvm;
 use openink_shape::features::Sample;
 use openink_shape::recognize::Recognizer;
 use std::sync::OnceLock;
@@ -15,6 +17,16 @@ fn recognizer() -> &'static Recognizer {
 }
 
 /// Split the flat samples into strokes; `None` when the lengths disagree or a value is not finite.
+/// The recognisers' ink arguments (`xyt`, `lens`) as strokes; on malformed input an IllegalArgumentException
+/// naming `who` is raised and `None` returned.
+pub fn read_ink(env: &mut JNIEnv, xyt: &JFloatArray, lens: &JIntArray, who: &str) -> Option<Vec<Vec<Sample>>> {
+    let strokes = jvm::read_floats(env, xyt).zip(jvm::read_ints(env, lens)).and_then(|(a, b)| strokes_from(&a, &b));
+    if strokes.is_none() {
+        jvm::throw(env, jvm::ILLEGAL_ARGUMENT, &format!("{who}: malformed ink arrays"));
+    }
+    strokes
+}
+
 pub fn strokes_from(xyt: &[f32], lens: &[i32]) -> Option<Vec<Vec<Sample>>> {
     if xyt.len() % 3 != 0 || !xyt.iter().all(|v| v.is_finite()) {
         return None;
@@ -38,23 +50,8 @@ pub extern "system" fn Java_org_openink_shape_ShapeRecognizer_nativeRecognize(
     xyt: JFloatArray,
     lens: JIntArray,
 ) -> jfloatArray {
-    let read = |env: &mut JNIEnv| -> Option<(Vec<f32>, Vec<i32>)> {
-        let mut a = vec![0f32; env.get_array_length(&xyt).ok()? as usize];
-        env.get_float_array_region(&xyt, 0, &mut a).ok()?;
-        let mut b = vec![0i32; env.get_array_length(&lens).ok()? as usize];
-        env.get_int_array_region(&lens, 0, &mut b).ok()?;
-        Some((a, b))
-    };
-    let Some(strokes) = read(&mut env).and_then(|(a, b)| strokes_from(&a, &b)) else {
-        let _ = env.throw_new("java/lang/IllegalArgumentException", "ShapeRecognizer: malformed ink arrays");
-        return std::ptr::null_mut();
-    };
-    let v = openink_shape::wire::encode(&recognizer().recognize(&strokes));
-    let Ok(arr) = env.new_float_array(v.len() as i32) else { return std::ptr::null_mut() };
-    if env.set_float_array_region(&arr, 0, &v).is_err() {
-        return std::ptr::null_mut();
-    }
-    arr.into_raw()
+    let Some(strokes) = read_ink(&mut env, &xyt, &lens, "ShapeRecognizer") else { return std::ptr::null_mut() };
+    jvm::write_floats(&env, &openink_shape::wire::encode(&recognizer().recognize(&strokes)))
 }
 
 #[cfg(test)]

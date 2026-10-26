@@ -6,6 +6,7 @@ use openink_pen::{PenAction, Tool};
 
 pub mod epdc;
 pub mod hwr;
+mod jvm;
 pub mod shape;
 pub mod stroke;
 
@@ -50,7 +51,7 @@ mod reader {
     }
 
     fn throw(env: &mut JNIEnv, msg: &str) {
-        let _ = env.throw_new("java/io/IOException", msg);
+        crate::jvm::throw(env, crate::jvm::IO, msg);
     }
 
     #[no_mangle]
@@ -140,11 +141,7 @@ mod reader {
     pub extern "system" fn Java_org_openink_pen_PenReader_nativeAxes(env: JNIEnv, _c: JClass, h: jlong) -> jintArray {
         // SAFETY: as nativeInfo.
         let r = unsafe { &*(h as *const Reader) };
-        let Ok(a) = env.new_int_array(r.axes.len() as i32) else { return std::ptr::null_mut() };
-        if env.set_int_array_region(&a, 0, &r.axes).is_err() {
-            return std::ptr::null_mut();
-        }
-        a.into_raw()
+        crate::jvm::write_ints(&env, &r.axes)
     }
 
     #[no_mangle]

@@ -59,9 +59,18 @@ checked against it:
 | crate | role | OS deps |
 |---|---|---|
 | `openink-core` | typed model: `Waveform` enum, `UpdateMode` (waveform + flags, lossless to/from the Onyx int), `PenState`, SF `Code` table, regions | none (host-testable) |
-| `openink-pen` | evdev decoding: raw `input_event` → `PenSample` + `PenAction` state machine (down/move/up/hover, rubber, side button), pressure normalisation, limit/exclude regions; device discovery **by capabilities** (ABS_PRESSURE + BTN_TOOL_PEN), not by name | Linux (`/dev/input`), the decoder itself is pure |
+| `openink-pen` | evdev decoding: raw `input_event` → `PenSample` + `PenAction` state machine (down/move/up/hover, rubber, side button), pressure normalisation, limit/exclude regions; device discovery **by capabilities** (ABS_X/Y/PRESSURE plus any pen-type tool key, `PEN_TOOLS`: this digitiser reports BTN_TOOL_BRUSH, never BTN_TOOL_PEN), not by name; `pen-dump` trace recorder | Linux (`/dev/input`), the decoder itself is pure |
+| `openink-stroke` | the knote2 pen set, replacing `libneo_pen.so` ([STROKE.md](STROKE.md)) | none |
+| `openink-epdc` | the refresh engine: queue, merging, waveform choice, ghost ledger, pen-aware holding ([EPDC-ENGINE.md](EPDC-ENGINE.md)) | none |
+| `openink-shape` | shape recogniser + beautifier, replacing MyScript Shape ([SHAPE-ENGINE.md](SHAPE-ENGINE.md)) | none (weights embedded) |
+| `openink-hwr` | handwriting recogniser, replacing MyScript HWR ([HWR-ENGINE.md](HWR-ENGINE.md)) | none (weights embedded) |
+| `openink-nn` | the `.oisw` weight format and the layers both recognisers run (dense, GRU, BiGRU) | none |
+| `openink-sf` | Onyx's private SurfaceFlinger requests as typed data, checked against the spec (a data layer, no Binder client) | none |
 | `openink-ebc` | L3/L4 contract: `#[repr(C)] EbcUpdate` (0x28 B, asserted at compile time), ioctl numbers, handwrite packet encoder (`0x55aa55aa`, cmd 0x21, 16-px x alignment, ≤ 65 500 B chunks) | Linux ioctl, only on a flashed device |
-| `openink-jni` | `cdylib` for Android: JNI entry points for `org.openink.pen.PenReader` and the EPD listener FIFO | Android NDK |
+| `openink-jni` | `cdylib` for Android: JNI for `org.openink.pen.PenReader`, `stroke.StrokeEngine`, `epd.EpdEngine`, `shape.ShapeRecognizer`, `hwr.HandwritingRecognizer`; shared marshalling in `jvm.rs` | Android NDK |
+
+Not built: a replacement for `libonyx_epd_listener.so` (the reader of SF's event FIFO `/dev/onyx/listener`,
+behind `EpdEventListener`). Nothing in the open stack needs those events yet.
 
 Invalid states are made unrepresentable: waveforms are an exhaustive enum (an unknown nibble is a
 decode error, not a silent default), pen states are an enum, `EbcUpdate`'s size is a const assert.
@@ -71,11 +80,11 @@ decode error, not a silent default), pen states are an enum, `EbcUpdate`'s size 
   (open / enable / pause / close, regions, stroke params). Backends behind one interface:
   `OnyxFrameworkBackend` (reflection on `android.onyx.ViewUpdateHelper`, the stock path) and later
   `OpenSfBackend` (our SF).
-- `onyx-compat`: the Onyx-shaped facade (`TouchHelper`, `RawInputCallback`, `EpdController`
-  subset) built on `openink`, so code written against the Onyx SDK ports by changing imports.
-  **Built**: `TouchHelper`, `RawInputCallback`, `TouchPoint`, `TouchPointList` in
-  `org.openink.compat.pen` — details, coverage and gaps in [ONYX-COMPAT.md](ONYX-COMPAT.md). The
-  raw → screen self-calibration is now the library's `org.openink.pen.MapCalibrator`.
+- `onyx-compat`: the Onyx-shaped facade built on `openink`, so code written against the Onyx SDK ports by changing
+  imports. **Built**: `TouchHelper`, `RawInputCallback`, `RawInputReader`, `TouchPoint`, `TouchPointList`,
+  `EpdPenManager` (`org.openink.compat.pen`) and `EpdController` (`org.openink.compat.epd`): 204 of the SDK's 211
+  public names ([API-COVERAGE.md](API-COVERAGE.md), [ONYX-COMPAT.md](ONYX-COMPAT.md)). The raw → screen
+  self-calibration is the library's `org.openink.pen.MapCalibrator`.
 
 ## Behaviour that must match exactly (from the traces)
 - Pen state: 0 quit, 1 start drawing, 2 resume (render on), 3 pause; pen state and enablePost carry
@@ -101,6 +110,12 @@ decode error, not a silent default), pen states are an enum, `EbcUpdate`'s size 
 - Java: compiled against `android.jar` from the same place.
 
 ## Status
+**Now:** all ten crates build and `impl/check.sh` passes (115 Rust tests, clippy `-D warnings`, the Java host
+checks, the Android build of the demo APK). On the device: the pen reader, instant ink through the whitelisted
+`ViewUpdateHelper`, the demo app, and (through Atlas) the stroke and shape engines. Not yet on the device:
+`onyx-compat`, the demo's eraser / undo / persistence. Each engine doc ends with what is still open. The entries
+below are the build-up in order; their test counts are as of then.
+
 - First stage:
   - spec extracted (`impl/spec/sf_protocol.json`), Rust/Java code tables generated from it;
   - crates `openink-core`, `openink-pen` (+ `pen-dump` recorder), `openink-ebc`, `openink-jni`:
@@ -186,9 +201,8 @@ decode error, not a silent default), pen states are an enum, `EbcUpdate`'s size 
 - **`openink-sf` is a data layer only.** The display integration drives instant ink through the
   whitelisted `ViewUpdateHelper` / `View.refreshScreen` API (`OnyxFrameworkBackend`-style); a direct
   SurfaceFlinger Binder client is out of scope and not needed.
-- Next: continue L1 on the whitelisted `ViewUpdateHelper` path (long-term aim: our own compositor on
-  a flashed device, no Onyx Java); then `openink-stroke` (knote2-quality pressure/tilt rendering) and
-  the `onyx-compat` shim.
+- (Then, in order: `openink-stroke`, the `onyx-compat` shim, `openink-epdc`, `openink-shape`, `openink-hwr`; each
+  has its own doc. The long-term aim stays our own compositor on a flashed device, with no Onyx Java.)
 - Run the checks — **one command runs every gate** (Rust tests, clippy `-D warnings`, the Java host
   checks SpecCheck + ScreenMapCheck + MapCalibratorCheck, the Android cross-build and the demo APK,
   then PageFileCheck); it stops at the first failure with a non-zero exit (`--no-device-builds`
